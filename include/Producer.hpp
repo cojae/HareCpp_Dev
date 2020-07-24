@@ -32,9 +32,6 @@
 #include "ConnectionBase.hpp"
 #include "Message.hpp"
 #include "pch.hpp"
-/*#include <iostream>
-#include <tuple>
-*/
 
 #include <future>
 #include <mutex>
@@ -62,8 +59,6 @@ class Producer {
   std::unordered_map<std::string, ExchangeProperties> m_exchangeList;
 
   std::shared_ptr<connection::ConnectionBase> m_connection;
-  // amqp_socket_t* m_socket;
-  // amqp_connection_state_t m_conn;
 
   std::string m_exchange;
 
@@ -75,14 +70,11 @@ class Producer {
 
   int m_curChannelNumber;
 
+  // TODO i use future/promise for thread control, but i'm starting to think thats not appropriate
   std::promise<void>* m_exitThreadSignal;
   std::future<void> m_futureObj;
 
   void thread();
-
-  // std::unordered_map<std::string, int> m_exchangeList;
-
-  // std::vector<ExchangeElement> m_exchange
 
   int addExchange(const std::string& exchange);
   int addExchange(const std::string& exchange, const std::string& type);
@@ -102,6 +94,7 @@ class Producer {
         m_curChannelNumber(1),
         m_exitThreadSignal(nullptr) {};
 
+  // Constructors with exchanges defined, may be thrown out TODO
   Producer(std::string&& exchange)
       : m_exchange(std::move(exchange)),
         m_isInitialized(false),
@@ -140,11 +133,6 @@ class Producer {
    * Intialize function for no default exchange
    */
   HARE_ERROR_E initialize(const std::string& server, int port);
-
-  /**
-   * Intialize function
-  void Initialize( const std::string& exchange ) ;
-  */
 
   /**
    * Copy Constructor

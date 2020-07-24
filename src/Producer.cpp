@@ -70,11 +70,6 @@ HARE_ERROR_E Producer::send(const std::string& exchange,
   // TODO CHeck return value
   addExchange(exchange);
 
-  // TODO set the timestamp either HERE or when its gets SENT
-  // Both have pros and cons
-  // NOTE: i did it in the send (connectionBase)
-  // Might be good to keep it there, and if the user wants to set it theirselves they can
-
   const std::lock_guard<std::mutex> lock(m_producerMutex);
 
   auto builtMessage = std::make_shared<helper::RawMessage>();
@@ -99,13 +94,6 @@ HARE_ERROR_E Producer::send(const std::string& exchange,
 
   m_sendQueue.push(builtMessage);
 
-  /*
-    {
-      char log[80];
-      sprintf(log, "Queueing up message on exchange: %s", m_exchange.c_str());
-      LOG(LOG_DETAILED, log);
-    }
-    */
   return retCode;  // TODO addExchange should return error code
 }
 
@@ -170,7 +158,6 @@ void Producer::thread() {
           }
 
           if (false == noError(retCode)) {
-            //if(serverFailure(retCode)) { Restart(); }
             allGood = false;
             continue;
           }
@@ -200,8 +187,6 @@ void Producer::thread() {
       privateRestart();
     }
 
-    // TODO if we restarted AND/OR if we are max out of the queue, 
-    // make sure we are freeing these values!!!!!!!!!!!!
     if (noError(retCode)) {
       amqp_bytes_free(m_sendQueue.front()->message);
       amqp_bytes_free(m_sendQueue.front()->routing_value);
@@ -212,7 +197,6 @@ void Producer::thread() {
 }
 
 HARE_ERROR_E Producer::stop() {
-  // const std::lock_guard<std::mutex> lock(m_producerMutex);
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
   if (false == m_isInitialized) {
@@ -255,7 +239,6 @@ HARE_ERROR_E Producer::initialize(const std::string& server, int port) {
   m_producerMutex.lock();
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   m_connection = std::make_shared<connection::ConnectionBase>(server, port);
-  //retCode = m_connection->Connect();
 
   if (noError(retCode)) {
     m_isInitialized = true;
@@ -265,8 +248,6 @@ HARE_ERROR_E Producer::initialize(const std::string& server, int port) {
 
   m_producerMutex.unlock();
 
-  // If exchange is set (probably only using the one)
-  // Open channel
   if (m_exchange != "") {
     addExchange(m_exchange);
     LOG(LOG_DETAILED, "First Default Exchange Set");

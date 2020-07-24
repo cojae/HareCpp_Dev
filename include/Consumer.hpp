@@ -50,8 +50,6 @@ class Consumer {
   bool m_isInitialized;
 
   std::shared_ptr<connection::ConnectionBase> m_connection;
-  // amqp_socket_t* m_socket;
-  // amqp_connection_state_t m_conn;
 
   std::mutex m_consumerMutex;
   std::mutex m_connectionMutex;

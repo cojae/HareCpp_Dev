@@ -16,6 +16,7 @@ int ChannelHandler::addChannelProcessor(
 
   if (it != m_bindingPairLookup.end()) {
     char log[80];
+    // TODO sprintf is not safe, please fix all calls
     sprintf(log, "%s : %s already exists, updating callback",
             bindingPair.first.c_str(), bindingPair.second.c_str());
     LOG(LOG_WARN, log);

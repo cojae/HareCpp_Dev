@@ -32,11 +32,7 @@ HARE_ERROR_E Consumer::subscribe(const std::string& exchange,
     } else {
     }
     if (noError(retCode)) {
-      // auto queueName = declareQueue(channel, queueProps);
-
-      // m_channelHandler.setQueueName(channel, queueName);
       m_channelHandler.setQueueProperties(channel, queueProps);
-      // printf("QueueName: %s\n", hare_bytes_to_string(queueName).c_str() ) ;
     }
   }
   return retCode;
@@ -65,9 +61,8 @@ HARE_ERROR_E Consumer::start() {
 
     m_threadRunning = true;
 
+    // Start up the consumer thread
     m_consumerThread = std::thread(&Consumer::thread, this);
-
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     LOG(LOG_INFO, "Consumer Thread Started");
   }
@@ -129,9 +124,7 @@ void Consumer::stopUnboundChannelThread() {
  */
 HARE_ERROR_E Consumer::Initialize(const std::string& server, int port) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  // TODO allow a factory to determine this
   m_connection = std::make_shared<connection::ConnectionBase>(server, port);
-  // retCode = m_connection->Connect();
 
   if (noError(retCode)) {
     m_isInitialized = true;

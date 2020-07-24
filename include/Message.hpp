@@ -33,6 +33,7 @@
 
 namespace HareCpp {
 
+// TODO this class may be completely tossed and replaced with HelperStructs::RawMessage
 class Message {
  private:
   /**
