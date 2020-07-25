@@ -33,7 +33,7 @@
 
 namespace HareCpp {
 
-HARE_ERROR_E Producer::send(const std::string& routing_value,
+HARE_ERROR_E Producer::Send(const std::string& routing_value,
                             Message& message) {
   /**
    *    Don't use scope lock as this may call the other send function
@@ -56,13 +56,13 @@ HARE_ERROR_E Producer::send(const std::string& routing_value,
   m_producerMutex.unlock();
 
   if (noError(retCode)) {
-    retCode = send(exchangeToUse, routing_value, message);
+    retCode = Send(exchangeToUse, routing_value, message);
   }
 
   return retCode;
 }
 
-HARE_ERROR_E Producer::send(const std::string& exchange,
+HARE_ERROR_E Producer::Send(const std::string& exchange,
                             const std::string& routing_value,
                             Message& message) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
@@ -98,7 +98,7 @@ HARE_ERROR_E Producer::send(const std::string& exchange,
   return retCode;  // TODO addExchange should return error code
 }
 
-HARE_ERROR_E Producer::start() {
+HARE_ERROR_E Producer::Start() {
   const std::lock_guard<std::mutex> lock(m_producerMutex);
 
   m_exitThreadSignal = new std::promise<void>();
@@ -197,7 +197,7 @@ void Producer::thread() {
   }
 }
 
-HARE_ERROR_E Producer::stop() {
+HARE_ERROR_E Producer::Stop() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
   if (false == m_isInitialized) {
@@ -235,7 +235,7 @@ HARE_ERROR_E Producer::stop() {
 /**
  * Intialize function
  */
-HARE_ERROR_E Producer::initialize(const std::string& server, int port) {
+HARE_ERROR_E Producer::Initialize(const std::string& server, int port) {
   // Set up connection information
   m_producerMutex.lock();
   auto retCode = HARE_ERROR_E::ALL_GOOD;
@@ -258,7 +258,7 @@ HARE_ERROR_E Producer::initialize(const std::string& server, int port) {
 
 Producer::~Producer() {
   if (m_threadRunning) {
-    stop();
+    Stop();
   }
 
   for (std::pair<std::string, ExchangeProperties> element : m_exchangeList) {
@@ -316,11 +316,11 @@ int Producer::addExchange(const std::string& exchange) {
   return selectedChannel;
 }
 
-void Producer::setExchange(const std::string& exchange) {
+void Producer::SetExchange(const std::string& exchange) {
   addExchange(exchange);
 }
 
-HARE_ERROR_E Producer::declareExchange(const std::string& exchange,
+HARE_ERROR_E Producer::DeclareExchange(const std::string& exchange,
                                        const std::string& type) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   if (noError(retCode)) {
@@ -334,9 +334,9 @@ HARE_ERROR_E Producer::declareExchange(const std::string& exchange,
 
 HARE_ERROR_E Producer::Restart() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  retCode = stop();
+  retCode = Stop();
   if (noError(retCode)) {
-    retCode = start();
+    retCode = Start();
   }
   return retCode;
 }

@@ -67,14 +67,14 @@ int main() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test;
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "test",
+    retCode = consumer.Subscribe("amq.direct", "test",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
@@ -82,7 +82,7 @@ int main() {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       HareCpp::LOG(HareCpp::LOG_FATAL, "Failed");
       return 0;
@@ -105,7 +105,7 @@ int main() {
         //printf("Test %d: Number of bytes per message (at 16 Hz): %d\n", i, i*1000000);
         printf("Test %d: Number of bytes per message (at %d Hz): %d bytes\n", i, Hz, iter);
         while (count <= 1000) {
-          retCode = producer.send("amq.direct", "test", newMessage);
+          retCode = producer.Send("amq.direct", "test", newMessage);
           std::this_thread::sleep_for(std::chrono::milliseconds(1000/Hz));
           //std::this_thread::sleep_for(std::chrono::milliseconds(62));
           count++;
@@ -125,12 +125,12 @@ int main() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       HareCpp::LOG(HareCpp::LOG_FATAL, "Failed");
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
   }
   return 0;
 };

@@ -112,18 +112,18 @@ class Producer {
         m_curChannelNumber(1),
         m_exitThreadSignal(nullptr){};
 
-  HARE_ERROR_E send(const std::string& routing_value, Message& message);
+  HARE_ERROR_E Send(const std::string& routing_value, Message& message);
 
-  HARE_ERROR_E send(const std::string& exchange,
+  HARE_ERROR_E Send(const std::string& exchange,
                     const std::string& routing_value, Message& message);
 
-  void setExchange(const std::string& exchange);
+  void SetExchange(const std::string& exchange);
 
-  HARE_ERROR_E declareExchange(const std::string& exchange,
+  HARE_ERROR_E DeclareExchange(const std::string& exchange,
                                const std::string& type = "direct");
 
-  HARE_ERROR_E start();
-  HARE_ERROR_E stop();
+  HARE_ERROR_E Start();
+  HARE_ERROR_E Stop();
 
   HARE_ERROR_E Restart();
 
@@ -133,7 +133,7 @@ class Producer {
   /**
    * Intialize function for no default exchange
    */
-  HARE_ERROR_E initialize(const std::string& server, int port);
+  HARE_ERROR_E Initialize(const std::string& server, int port);
 
   /**
    * Copy Constructor
@@ -145,7 +145,7 @@ class Producer {
    */
   ~Producer();
 
-  bool isInitialized() { return m_isInitialized; }
+  bool IsInitialized() { return m_isInitialized; }
 };
 
 }  // Namespace HareCpp

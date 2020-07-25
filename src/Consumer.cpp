@@ -40,18 +40,18 @@ int Consumer::smartBind(int channel) {
 
   amqp_bytes_t queueName;
   retCode = m_connection->DeclareQueue(
-      channel, m_channelHandler.getQueueProperties(channel), queueName);
+      channel, m_channelHandler.GetQueueProperties(channel), queueName);
   if (noError(retCode)) {
     char log[80];
     sprintf(log, "Created Queue: %s", hare_bytes_to_string(queueName).c_str());
     LOG(LOG_INFO, log);
 
-    m_channelHandler.setQueueName(channel, queueName);
+    m_channelHandler.SetQueueName(channel, queueName);
 
     sprintf(log, "Binding: %s %s %s %d",
             hare_bytes_to_string(queueName).c_str(),
-            m_channelHandler.getExchange(channel).c_str(),
-            m_channelHandler.getBindingKey(channel).c_str(), channel);
+            m_channelHandler.GetExchange(channel).c_str(),
+            m_channelHandler.GetBindingKey(channel).c_str(), channel);
     LOG(LOG_DETAILED, log);
 
   } else if (serverFailure(retCode)) {
@@ -62,8 +62,8 @@ int Consumer::smartBind(int channel) {
 
   {
     retCode = m_connection->BindQueue(channel, queueName,
-                                      m_channelHandler.getExchange(channel),
-                                      m_channelHandler.getBindingKey(channel));
+                                      m_channelHandler.GetExchange(channel),
+                                      m_channelHandler.GetBindingKey(channel));
     if (false == noError(retCode)) {
       if (serverFailure(retCode)) {
         return -2;
@@ -99,7 +99,7 @@ void Consumer::thread() {
           m_unboundChannels.pop();
         }
         // Start up everything
-        for (int channel : m_channelHandler.getChannelList()) {
+        for (int channel : m_channelHandler.GetChannelList()) {
           // printf("Registering channel: %d\n", channel) ;
           {
             char log[80];
@@ -163,7 +163,7 @@ void Consumer::thread() {
         LOG(LOG_DETAILED, log);
       }
 
-      m_channelHandler.process(std::make_pair(exchange, bindingKey),
+      m_channelHandler.Process(std::make_pair(exchange, bindingKey),
                                newMessage);
 
     } else if (serverFailure(ret)) {

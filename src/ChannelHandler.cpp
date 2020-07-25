@@ -5,7 +5,7 @@ namespace HareCpp {
 ChannelHandler::ChannelHandler()
     : m_nextAvailableChannel(1), m_multiThreaded(true) {}
 
-int ChannelHandler::addChannelProcessor(
+int ChannelHandler::AddChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair,
     TD_Callback& callback) {
   int retCode = -1;
@@ -50,7 +50,7 @@ int ChannelHandler::addChannelProcessor(
   return retCode;
 }
 
-int ChannelHandler::removeChannelProcessor(
+int ChannelHandler::RemoveChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair) {
   auto it = m_bindingPairLookup.find(bindingPair);
   if (it != m_bindingPairLookup.end()) {
@@ -62,12 +62,12 @@ int ChannelHandler::removeChannelProcessor(
   return 1;
 }
 
-void ChannelHandler::setMultiThreaded(bool multiThread) {
+void ChannelHandler::SetMultiThreaded(bool multiThread) {
   std::lock_guard<std::mutex> lock(m_handlerMutex);
   m_multiThreaded = multiThread;
 }
 
-void ChannelHandler::process(
+void ChannelHandler::Process(
     const std::pair<std::string, std::string>& bindingPair,
     const Message& message) {
   std::lock_guard<std::mutex> lock(m_handlerMutex);
@@ -83,7 +83,7 @@ void ChannelHandler::process(
   }
 }
 
-std::vector<int> ChannelHandler::getChannelList() const {
+std::vector<int> ChannelHandler::GetChannelList() const {
   std::vector<int> retVec;
   std::lock_guard<std::mutex> lock(m_handlerMutex);
   if (m_channelLookup.size() == 0) return retVec;  // error code here

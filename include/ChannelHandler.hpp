@@ -128,7 +128,7 @@ class ChannelHandler {
    * this message
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
-  int addChannelProcessor(
+  int AddChannelProcessor(
       const std::pair<std::string, std::string>& bindingPair,
       TD_Callback& callback);
 
@@ -140,7 +140,7 @@ class ChannelHandler {
    * @param [in] bindingPair : The pair of exchange name and routing key
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
-  int removeChannelProcessor(
+  int RemoveChannelProcessor(
       const std::pair<std::string, std::string>& bindingPair);
 
   /**
@@ -149,7 +149,7 @@ class ChannelHandler {
    * @param [in] multiThread: boolean to set on/off (true/false) for whether or
    * not we are processing with multible threads
    */
-  void setMultiThreaded(bool multiThread);
+  void SetMultiThreaded(bool multiThread);
 
   /**
    * Process the message we have been passed by the consumer.  ChannelHandler
@@ -163,7 +163,7 @@ class ChannelHandler {
    * where the message came from and what callback we care about
    * @param [in] message: The message to be processed
    */
-  void process(const std::pair<std::string, std::string>& bindingPair,
+  void Process(const std::pair<std::string, std::string>& bindingPair,
                const Message& message);
 
   /**
@@ -173,7 +173,7 @@ class ChannelHandler {
    *
    * @returns vector of channels that are/will be subscribed to
    */
-  std::vector<int> getChannelList() const;
+  std::vector<int> GetChannelList() const;
 
   /**
    * Get the exchange name given a channel number
@@ -181,7 +181,7 @@ class ChannelHandler {
    * @param [in] channel: the channel we are looking up
    * @returns the exchange name as string
    */
-  std::string getExchange(int channel) {
+  std::string GetExchange(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
       return m_channelLookup[channel]->m_bindingPair->first;
@@ -195,7 +195,7 @@ class ChannelHandler {
    * @param [in] channel: the channel we are looking up
    * @returns the binding/routing key for the messages
    */
-  std::string getBindingKey(int channel) {
+  std::string GetBindingKey(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
       return m_channelLookup[channel]->m_bindingPair->second;
@@ -210,7 +210,7 @@ class ChannelHandler {
    * @returns the amqp_bytes_t of the queue, to be used when subscribing to
    * broker exchange/channel
    */
-  amqp_bytes_t getQueueName(int channel) {
+  amqp_bytes_t GetQueueName(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
       return m_channelLookup[channel]->m_queueName;
@@ -227,7 +227,7 @@ class ChannelHandler {
    * within the lookup maps
    * @returns nothing - TODO return HARE_ERROR_E
    */
-  void setQueueName(int channel, const amqp_bytes_t& queueName) {
+  void SetQueueName(int channel, const amqp_bytes_t& queueName) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0) {
       amqp_bytes_free(m_channelLookup[channel]->m_queueName);
@@ -245,7 +245,7 @@ class ChannelHandler {
    * @returns the queueProperties to be used when subscribing to an exchange
    * within a broker
    */
-  helper::queueProperties getQueueProperties(int channel) {
+  helper::queueProperties GetQueueProperties(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
       return m_channelLookup[channel]->m_queueProperties;
@@ -260,7 +260,7 @@ class ChannelHandler {
    * @param [in] queueProperties: the properties set for that channel/queue
    * @returns nothing - TODO HARE_ERROR_E
    */
-  void setQueueProperties(int channel,
+  void SetQueueProperties(int channel,
                           const helper::queueProperties& queueProperties) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0) {

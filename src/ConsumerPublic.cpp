@@ -3,7 +3,7 @@
 
 namespace HareCpp {
 
-HARE_ERROR_E Consumer::subscribe(const std::string& exchange,
+HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
                                  const std::string& binding_key, TD_Callback f,
                                  helper::queueProperties queueProps) {
   std::lock_guard<std::mutex> lock(m_consumerMutex);
@@ -20,7 +20,7 @@ HARE_ERROR_E Consumer::subscribe(const std::string& exchange,
   }
 
   if (noError(retCode)) {
-    auto channel = m_channelHandler.addChannelProcessor(
+    auto channel = m_channelHandler.AddChannelProcessor(
         std::make_pair(exchange, binding_key), f);
 
     if (channel == -1) {
@@ -32,13 +32,13 @@ HARE_ERROR_E Consumer::subscribe(const std::string& exchange,
     } else {
     }
     if (noError(retCode)) {
-      m_channelHandler.setQueueProperties(channel, queueProps);
+      m_channelHandler.SetQueueProperties(channel, queueProps);
     }
   }
   return retCode;
 }
 
-HARE_ERROR_E Consumer::start() {
+HARE_ERROR_E Consumer::Start() {
   std::lock_guard<std::mutex> lock(m_consumerMutex);
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
@@ -70,7 +70,7 @@ HARE_ERROR_E Consumer::start() {
   return retCode;
 }
 
-HARE_ERROR_E Consumer::stop() {
+HARE_ERROR_E Consumer::Stop() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
   if (false == m_isInitialized) {
@@ -93,7 +93,7 @@ HARE_ERROR_E Consumer::stop() {
     }
 
     // Stop consuming on all channels
-    for (int channel : m_channelHandler.getChannelList()) {
+    for (int channel : m_channelHandler.GetChannelList()) {
       {
         char log[80];
         sprintf(log, "Stopping Consuming on channel: %d", channel);
@@ -137,9 +137,9 @@ HARE_ERROR_E Consumer::Initialize(const std::string& server, int port) {
 
 HARE_ERROR_E Consumer::Restart() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  retCode = stop();
+  retCode = Stop();
   if (noError(retCode)) {
-    retCode = start();
+    retCode = Start();
   }
   return retCode;
 }

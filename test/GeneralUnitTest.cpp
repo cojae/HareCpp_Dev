@@ -81,21 +81,21 @@ int foreverTest() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "test",
+    retCode = consumer.Subscribe("amq.direct", "test",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -105,14 +105,14 @@ int foreverTest() {
       return 0;
     }
     while (1) {
-      retCode = producer.send("amq.direct", "test", newMessage);
+      retCode = producer.Send("amq.direct", "test", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -122,21 +122,21 @@ int basicSubscribeTest() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "test",
+    retCode = consumer.Subscribe("amq.direct", "test",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -147,20 +147,20 @@ int basicSubscribeTest() {
     }
     auto start = std::chrono::system_clock::now();
     while (false == test.isComplete()) {
-      retCode = producer.send("amq.direct", "test", newMessage);
+      retCode = producer.Send("amq.direct", "test", newMessage);
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -170,21 +170,21 @@ int basicStartAndStop() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "restartTest",
+    retCode = consumer.Subscribe("amq.direct", "restartTest",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -195,45 +195,45 @@ int basicStartAndStop() {
     }
     auto start = std::chrono::system_clock::now();
     while (false == test.isComplete()) {
-      retCode = producer.send("amq.direct", "restartTest", newMessage);
+      retCode = producer.Send("amq.direct", "restartTest", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
         printf("time to die\n");
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    consumer.stop();
-    retCode = consumer.subscribe("amq.direct", "secondTest",
+    consumer.Stop();
+    retCode = consumer.Subscribe("amq.direct", "secondTest",
                                  std::bind(&testReceive::receiverSecondCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    consumer.start();
+    consumer.Start();
     test.restart();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     start = std::chrono::system_clock::now();
     while (false == test.advancedIsComplete()) {
-      retCode = producer.send("amq.direct", "restartTest", newMessage);
-      retCode = producer.send("amq.direct", "secondTest", newMessage);
+      retCode = producer.Send("amq.direct", "restartTest", newMessage);
+      retCode = producer.Send("amq.direct", "secondTest", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -243,27 +243,27 @@ int basicRestart() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "restartTest",
+    retCode = consumer.Subscribe("amq.direct", "restartTest",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "secondTest",
+    retCode = consumer.Subscribe("amq.direct", "secondTest",
                                  std::bind(&testReceive::receiverSecondCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -274,14 +274,14 @@ int basicRestart() {
     }
     auto start = std::chrono::system_clock::now();
     while (false == test.isComplete()) {
-      retCode = producer.send("amq.direct", "restartTest", newMessage);
+      retCode = producer.Send("amq.direct", "restartTest", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
         printf("time to die\n");
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
@@ -290,22 +290,22 @@ int basicRestart() {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     start = std::chrono::system_clock::now();
     while (false == test.advancedIsComplete()) {
-      retCode = producer.send("amq.direct", "restartTest", newMessage);
-      retCode = producer.send("amq.direct", "secondTest", newMessage);
+      retCode = producer.Send("amq.direct", "restartTest", newMessage);
+      retCode = producer.Send("amq.direct", "secondTest", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -315,27 +315,27 @@ int advancedSubscribeTest() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "test",
+    retCode = consumer.Subscribe("amq.direct", "test",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "secondTest",
+    retCode = consumer.Subscribe("amq.direct", "secondTest",
                                  std::bind(&testReceive::receiverSecondCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -346,21 +346,21 @@ int advancedSubscribeTest() {
     }
     auto start = std::chrono::system_clock::now();
     while (false == test.advancedIsComplete()) {
-      retCode = producer.send("amq.direct", "test", newMessage);
-      retCode = producer.send("amq.direct", "secondTest", newMessage);
+      retCode = producer.Send("amq.direct", "test", newMessage);
+      retCode = producer.Send("amq.direct", "secondTest", newMessage);
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 5) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -370,26 +370,26 @@ int basicExchangeDeclaration() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("blahblah", "test",
+    retCode = consumer.Subscribe("blahblah", "test",
                                  std::bind(&testReceive::receiverCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    producer.declareExchange("blahblah", "direct");
+    producer.DeclareExchange("blahblah", "direct");
 
     auto newMessage = HareCpp::Message("test message");
     if (false == HareCpp::noError(retCode)) {
@@ -398,21 +398,21 @@ int basicExchangeDeclaration() {
     auto start = std::chrono::system_clock::now();
     while (false == test.isComplete()) {
       // So consumer thread can catch up
-      retCode = producer.send("blahblah", "test", newMessage);
+      retCode = producer.Send("blahblah", "test", newMessage);
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 10) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -422,12 +422,12 @@ int basicConsumerSetupTest() {
   HareCpp::Consumer test;
   auto retCode = test.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = test.start();
+    retCode = test.Start();
     if (false == HareCpp::noError(retCode)) {
       printf(ANSI_COLOR_RED "Failed in starting thread\n" ANSI_COLOR_RESET);
       return 0;
     }
-    retCode = test.stop();
+    retCode = test.Stop();
     if (false == HareCpp::noError(retCode)) {
       printf(ANSI_COLOR_RED "Failed in stopping thread\n" ANSI_COLOR_RESET);
       return 0;
@@ -441,13 +441,13 @@ int doubleThreadStartConsumer() {
   HareCpp::Consumer test;
   auto retCode = test.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = test.start();
+    retCode = test.Start();
     if (false == HareCpp::noError(retCode)) {
       printf(ANSI_COLOR_RED "Failed in starting thread\n" ANSI_COLOR_RESET);
       return 0;
     }
-    retCode = test.start();  // Start a second time
-    test.stop();
+    retCode = test.Start();  // Start a second time
+    test.Stop();
     return (retCode == HareCpp::HARE_ERROR_E::THREAD_ALREADY_RUNNING);
   }
   return 0;
@@ -455,27 +455,27 @@ int doubleThreadStartConsumer() {
 
 int basicProducerSetupTest() {
   HareCpp::Producer test;
-  auto retCode = test.initialize("rabbit-serv", 5672);
+  auto retCode = test.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = test.start();
+    retCode = test.Start();
   }
-  retCode = test.stop();
+  retCode = test.Stop();
   return (HareCpp::noError(retCode));
 }
 
 int basicProducerSendTest() {
   HareCpp::Producer test;
-  auto retCode = test.initialize("rabbit-serv", 5672);
+  auto retCode = test.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = test.start();
+    retCode = test.Start();
   }
   if (HareCpp::noError(retCode)) {
     auto newMessage = HareCpp::Message("this is a test");
-    retCode = test.send("amq.direct", "testKey", newMessage);
+    retCode = test.Send("amq.direct", "testKey", newMessage);
   }
   if (HareCpp::noError(retCode)) {
     auto newMessage = HareCpp::Message("this is another test");
-    retCode = test.send("testKey", newMessage);
+    retCode = test.Send("testKey", newMessage);
   }
   return (HareCpp::noError(retCode));
 }
@@ -484,21 +484,21 @@ int largeDataSendTest() {
   HareCpp::Producer producer;
   HareCpp::Consumer consumer;
   testReceive test("test message");
-  auto retCode = producer.initialize("rabbit-serv", 5672);
+  auto retCode = producer.Initialize("rabbit-serv", 5672);
   retCode = consumer.Initialize("rabbit-serv", 5672);
   if (HareCpp::noError(retCode)) {
-    retCode = producer.start();
+    retCode = producer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.subscribe("amq.direct", "test",
+    retCode = consumer.Subscribe("amq.direct", "test",
                                  std::bind(&testReceive::receiverJunkCallback,
                                            &test, std::placeholders::_1));
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
 
-    retCode = consumer.start();
+    retCode = consumer.Start();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
@@ -508,7 +508,7 @@ int largeDataSendTest() {
       //printf("%d\n", i);
       auto newMessage = HareCpp::Message(generateJunk());
       newMessage.setTimestamp(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-      retCode = producer.send("amq.direct", "test", newMessage);
+      retCode = producer.Send("amq.direct", "test", newMessage);
     }
     if (false == HareCpp::noError(retCode)) {
       return 0;
@@ -518,17 +518,17 @@ int largeDataSendTest() {
       auto cur = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = cur - start;
       if (elapsedTime.count() > 1000) {
-        producer.stop();
-        consumer.stop();
+        producer.Stop();
+        consumer.Stop();
         return 0;
       }
     }
     //printf("Average seconds : %lf\n", test.getAverageTime() * .000001);
-    retCode = producer.stop();
+    retCode = producer.Stop();
     if (false == HareCpp::noError(retCode)) {
       return 0;
     }
-    retCode = consumer.stop();
+    retCode = consumer.Stop();
     return (HareCpp::noError(retCode));
   }
   return 0;
@@ -552,7 +552,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic consumer double thread start test\n" ANSI_COLOR_RESET);
@@ -564,7 +564,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic producer setup test\n" ANSI_COLOR_RESET);
@@ -576,7 +576,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic producer send test\n" ANSI_COLOR_RESET);
@@ -587,7 +587,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN "Running basic subscribe test\n" ANSI_COLOR_RESET);
   if (0 == basicSubscribeTest()) {
@@ -597,7 +597,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN "Running advanced subscribe test\n" ANSI_COLOR_RESET);
   if (0 == advancedSubscribeTest()) {
@@ -607,7 +607,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic exchange declaration test\n" ANSI_COLOR_RESET);
@@ -619,7 +619,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic restart test\n" ANSI_COLOR_RESET);
@@ -631,7 +631,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running basic stop and start test\n" ANSI_COLOR_RESET);
@@ -643,7 +643,7 @@ int main() {
   }
 
   // For dramatic effect
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   printf(ANSI_COLOR_GREEN
          "Running large data (13Mb) send test\n" ANSI_COLOR_RESET);

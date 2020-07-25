@@ -172,8 +172,8 @@ class Consumer {
    *
    * TODO make these start with an uppercase letter
    */
-  HARE_ERROR_E start();
-  HARE_ERROR_E stop();
+  HARE_ERROR_E Start();
+  HARE_ERROR_E Stop();
 
   // TODO can i delete this?
   void operator()() { thread(); }
@@ -191,7 +191,7 @@ class Consumer {
    * created by the user to define the properties the queue should have upon
    * creation.
    */
-  HARE_ERROR_E subscribe(
+  HARE_ERROR_E Subscribe(
       const std::string& exchange, const std::string& binding_key,
       TD_Callback f,
       helper::queueProperties queueProps = helper::queueProperties());
@@ -229,16 +229,16 @@ class Consumer {
    * Close connection and stop main threads
    */
   ~Consumer() {
-    stop();
+    Stop();
     m_connection->CloseConnection();
   };
 
-  bool isInitialized() {
+  bool IsInitialized() {
     const std::lock_guard<std::mutex> lock(m_consumerMutex);
     return m_isInitialized;
   }
 
-  bool isRunning() {
+  bool IsRunning() {
     const std::lock_guard<std::mutex> lock(m_consumerMutex);
     return m_threadRunning;
   }
