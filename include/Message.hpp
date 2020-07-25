@@ -33,7 +33,8 @@
 
 namespace HareCpp {
 
-// TODO this class may be completely tossed and replaced with HelperStructs::RawMessage
+// TODO this class may be completely tossed and replaced with
+// HelperStructs::RawMessage
 class Message {
  private:
   /**
@@ -54,8 +55,7 @@ class Message {
 
   Message(const Message&) = default;
 
-  Message(Message&& original) 
-    : m_message(std::move(original.m_message)) {
+  Message(Message&& original) : m_message(std::move(original.m_message)) {
     // This is a pure copy.  Can potentially make this faster
     m_properties = original.m_properties;
     original.m_message = "";

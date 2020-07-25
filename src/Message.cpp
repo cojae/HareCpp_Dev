@@ -13,13 +13,12 @@ Message::Message(const std::string& message) : m_message(message) {
 /**
  * Message created by receiving an envelope
  */
-Message::Message(const amqp_envelope_t& envelope) 
-    : m_message(std::string(static_cast<char*>(envelope.message.body.bytes),envelope.message.body.len)),
-    m_properties(envelope.message.properties) {}
+Message::Message(const amqp_envelope_t& envelope)
+    : m_message(std::string(static_cast<char*>(envelope.message.body.bytes),
+                            envelope.message.body.len)),
+      m_properties(envelope.message.properties) {}
 
-const std::string* Message::payload() const {
-  return &m_message;
-}
+const std::string* Message::payload() const { return &m_message; }
 
 unsigned int Message::Length() const { return m_message.size(); }
 }  // namespace HareCpp

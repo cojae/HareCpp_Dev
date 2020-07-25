@@ -42,8 +42,9 @@
 namespace HareCpp {
 
 /**
- * ChannelHandler is a helper class to keep track of channel/callback information for consumers
- * It gives (I hope) an easier way to access and set channel related information
+ * ChannelHandler is a helper class to keep track of channel/callback
+ * information for consumers It gives (I hope) an easier way to access and set
+ * channel related information
  */
 class ChannelHandler {
  private:
@@ -60,39 +61,46 @@ class ChannelHandler {
   };
 
   /**
-   * Lookup structure to find a particular binding pair.  The binding pair is the 
-   * combination of exchange and routing key, and this combination is used with 
-   * the callback set by the user to subscribe to and process desired messages.
-   * 
-   * The map is keyed off the pair itself with the content being a shared ptr to the channelProcessingInfo structure,
-   * This is so that the channelLookup and the bindingPairLookup can have shared structures, so to reduce redundant memory usage.
+   * Lookup structure to find a particular binding pair.  The binding pair is
+   * the combination of exchange and routing key, and this combination is used
+   * with the callback set by the user to subscribe to and process desired
+   * messages.
+   *
+   * The map is keyed off the pair itself with the content being a shared ptr to
+   * the channelProcessingInfo structure, This is so that the channelLookup and
+   * the bindingPairLookup can have shared structures, so to reduce redundant
+   * memory usage.
    */
   std::map<const std::pair<std::string, std::string>,
            std::shared_ptr<channelProcessingInfo> >
       m_bindingPairLookup;
 
   /**
-   * Lookup structure to find a particular channel.  This channel is bound directly 
-   * to a binding Pair (see bindingPairLookup comments).  Often we only have the channel, it helps with this structure to easily find the
-   * channel information given only a channel integer.
-   * 
-   * This shares the same channelProcessingInfo as m_bindingPairLookup, for easy access/quicker lookup
+   * Lookup structure to find a particular channel.  This channel is bound
+   * directly to a binding Pair (see bindingPairLookup comments).  Often we only
+   * have the channel, it helps with this structure to easily find the channel
+   * information given only a channel integer.
+   *
+   * This shares the same channelProcessingInfo as m_bindingPairLookup, for easy
+   * access/quicker lookup
    */
   std::map<int, std::shared_ptr<channelProcessingInfo> > m_channelLookup;
 
-  // Keeps track of channels, starts at 0 and increments with every new addition to the channelHandler
+  // Keeps track of channels, starts at 0 and increments with every new addition
+  // to the channelHandler
   int m_nextAvailableChannel;
 
   /**
-   *  Determines if the processing of the consumed messages should be multi-threaded or not.  
-   *   If multi-threaded is turned off, you reduce the copies but you have to maintain processing speed yourself.
-   *   If multi-threaded is turned on, a lambda is produced to copy the callback and the message over to its own space.
-   *   Default is turned 'on'
+   *  Determines if the processing of the consumed messages should be
+   * multi-threaded or not. If multi-threaded is turned off, you reduce the
+   * copies but you have to maintain processing speed yourself. If
+   * multi-threaded is turned on, a lambda is produced to copy the callback and
+   * the message over to its own space. Default is turned 'on'
    */
   bool m_multiThreaded;
 
   // Mutex to protect the class members
-  mutable std::mutex m_handlerMutex ;
+  mutable std::mutex m_handlerMutex;
 
  public:
   ChannelHandler();
@@ -109,12 +117,15 @@ class ChannelHandler {
 
   /**
    * Adds a channel processing group to the current class instances list
-   * This includes the addition of callback function, and the associated channel/binding pairs.
-   * This is to be later used while processing a message, the message will contain the exchange/binding key used
-   * and that combination will be used to lookup the associated callback function to call to process the message
-   * 
+   * This includes the addition of callback function, and the associated
+   * channel/binding pairs. This is to be later used while processing a message,
+   * the message will contain the exchange/binding key used and that combination
+   * will be used to lookup the associated callback function to call to process
+   * the message
+   *
    * @param [in] bindingPair : The pair of exchange name and routing key
-   * @param [in] callback : The callback function used by the user to process this message
+   * @param [in] callback : The callback function used by the user to process
+   * this message
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
   int addChannelProcessor(
@@ -123,8 +134,9 @@ class ChannelHandler {
 
   /**
    * Removes a channel processing group from the current class instances list
-   * This includes the removal of callback function, and the associated channel/binding pairs
-   * 
+   * This includes the removal of callback function, and the associated
+   * channel/binding pairs
+   *
    * @param [in] bindingPair : The pair of exchange name and routing key
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
@@ -133,18 +145,22 @@ class ChannelHandler {
 
   /**
    * set the multiThreaded boolean (default true/on)
-   * 
-   * @param [in] multiThread: boolean to set on/off (true/false) for whether or not we are processing with multible threads
+   *
+   * @param [in] multiThread: boolean to set on/off (true/false) for whether or
+   * not we are processing with multible threads
    */
   void setMultiThreaded(bool multiThread);
 
   /**
-   * Process the message we have been passed by the consumer.  ChannelHandler keeps track of channel information, including the user's callback function.  
+   * Process the message we have been passed by the consumer.  ChannelHandler
+   * keeps track of channel information, including the user's callback function.
    * So messages can be passed to it for processing
-   * 
-   * By default, this is multithreaded.  But can be turned down to allow one message at a time (setMultiThreaded(false);)
-   * 
-   * @param [in] bindingPair: the pair of exchange/routingKey used to determine where the message came from and what callback we care about
+   *
+   * By default, this is multithreaded.  But can be turned down to allow one
+   * message at a time (setMultiThreaded(false);)
+   *
+   * @param [in] bindingPair: the pair of exchange/routingKey used to determine
+   * where the message came from and what callback we care about
    * @param [in] message: The message to be processed
    */
   void process(const std::pair<std::string, std::string>& bindingPair,
@@ -152,16 +168,16 @@ class ChannelHandler {
 
   /**
    * Returns a vector of all channels
-   * 
+   *
    * This is beneficial when trying to establish connection with broker
-   * 
+   *
    * @returns vector of channels that are/will be subscribed to
    */
   std::vector<int> getChannelList() const;
 
   /**
    * Get the exchange name given a channel number
-   * 
+   *
    * @param [in] channel: the channel we are looking up
    * @returns the exchange name as string
    */
@@ -175,7 +191,7 @@ class ChannelHandler {
 
   /**
    * Get the binding Key (Routing Key) given a channel number
-   * 
+   *
    * @param [in] channel: the channel we are looking up
    * @returns the binding/routing key for the messages
    */
@@ -189,9 +205,10 @@ class ChannelHandler {
 
   /**
    * Get the queue name given a channel number
-   * 
+   *
    * @param [in] channel: the channel we are looking up
-   * @returns the amqp_bytes_t of the queue, to be used when subscribing to broker exchange/channel
+   * @returns the amqp_bytes_t of the queue, to be used when subscribing to
+   * broker exchange/channel
    */
   amqp_bytes_t getQueueName(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
@@ -202,10 +219,12 @@ class ChannelHandler {
   }
 
   /**
-   * Set the queue name with a channel number and the associated queue name (which may be overwriten/updated later)
-   * 
+   * Set the queue name with a channel number and the associated queue name
+   * (which may be overwriten/updated later)
+   *
    * @param [in] channel: the channel to be used at lookup (getter functions)
-   * @param [in] queueName: the amqp_bytes_t of the queue to be used to set within the lookup maps
+   * @param [in] queueName: the amqp_bytes_t of the queue to be used to set
+   * within the lookup maps
    * @returns nothing - TODO return HARE_ERROR_E
    */
   void setQueueName(int channel, const amqp_bytes_t& queueName) {
@@ -221,9 +240,10 @@ class ChannelHandler {
 
   /**
    * Get the queue properties given a channel number
-   * 
+   *
    * @param [in] channel: the channel we are looking up
-   * @returns the queueProperties to be used when subscribing to an exchange within a broker 
+   * @returns the queueProperties to be used when subscribing to an exchange
+   * within a broker
    */
   helper::queueProperties getQueueProperties(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
@@ -235,7 +255,7 @@ class ChannelHandler {
 
   /**
    * Set the queue properties given a channel number
-   * 
+   *
    * @param [in] channel: the channel we will be looking up
    * @param [in] queueProperties: the properties set for that channel/queue
    * @returns nothing - TODO HARE_ERROR_E

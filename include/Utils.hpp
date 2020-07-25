@@ -95,4 +95,4 @@ inline const char *amqp_rpc_reply_string(amqp_rpc_reply_t r) {
   }
 }
 
-#endif // __HARE_UTILS_HPP_
+#endif  // __HARE_UTILS_HPP_

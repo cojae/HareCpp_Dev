@@ -65,7 +65,7 @@ enum class HARE_ERROR_E : unsigned int {
    */
   UNABLE_TO_SUBSCRIBE,
   /**
-   * 
+   *
    */
   PRODUCER_QUEUE_FULL,
   /**

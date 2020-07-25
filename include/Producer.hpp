@@ -70,7 +70,8 @@ class Producer {
 
   int m_curChannelNumber;
 
-  // TODO i use future/promise for thread control, but i'm starting to think thats not appropriate
+  // TODO i use future/promise for thread control, but i'm starting to think
+  // thats not appropriate
   std::promise<void>* m_exitThreadSignal;
   std::future<void> m_futureObj;
 
@@ -92,7 +93,7 @@ class Producer {
         m_threadRunning(false),
         m_channelsConnected(false),
         m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr) {};
+        m_exitThreadSignal(nullptr){};
 
   // Constructors with exchanges defined, may be thrown out TODO
   Producer(std::string&& exchange)
@@ -101,7 +102,7 @@ class Producer {
         m_threadRunning(false),
         m_channelsConnected(false),
         m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr) {};
+        m_exitThreadSignal(nullptr){};
 
   Producer(const std::string& exchange)
       : m_exchange(exchange),
@@ -109,7 +110,7 @@ class Producer {
         m_threadRunning(false),
         m_channelsConnected(false),
         m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr) {};
+        m_exitThreadSignal(nullptr){};
 
   HARE_ERROR_E send(const std::string& routing_value, Message& message);
 

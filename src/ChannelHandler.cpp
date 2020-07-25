@@ -77,7 +77,7 @@ void ChannelHandler::process(
   }
 
   if (m_multiThreaded) {
-    std::thread([message,it] { it->second->m_callback(message); }).detach();
+    std::thread([message, it] { it->second->m_callback(message); }).detach();
   } else {
     it->second->m_callback(message);
   }

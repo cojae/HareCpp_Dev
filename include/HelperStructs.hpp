@@ -3,6 +3,7 @@
 #ifndef _HELPER_STRUCTS_H_
 #define _HELPER_STRUCTS_H_
 
+// TODO i don't like this namespace word choice/combination...
 namespace HareCpp {
 namespace helper {
 
@@ -15,8 +16,8 @@ struct queueProperties {
   int m_autoDelete;
 };
 
-// TODO instead of this AND Message class, try and find a middleground between the two
-// Redundant stuff is annoying. This is redundant
+// TODO instead of this AND Message class, try and find a middleground between
+// the two Redundant stuff is annoying. This is redundant
 struct RawMessage {
   amqp_bytes_t exchange;
   int channel;

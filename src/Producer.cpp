@@ -89,8 +89,9 @@ HARE_ERROR_E Producer::send(const std::string& exchange,
   /*if ( m_sendQueue.size() >= 15 ) {
     retCode = HARE_ERROR_E::PRODUCER_QUEUE_FULL;
     m_sendQueue.pop(); // Pop the next in line off
-  }*/  
-  // NOTE, this breaks shit... why? idk plz investigate. may show me a race condition TODO
+  }*/
+  // NOTE, this breaks shit... why? idk plz investigate. may show me a race
+  // condition TODO
 
   m_sendQueue.push(builtMessage);
 
@@ -132,13 +133,13 @@ void Producer::thread() {
          std::future_status::timeout) {
     const std::lock_guard<std::mutex> lock(m_producerMutex);
 
-    if(false == m_threadRunning) {
+    if (false == m_threadRunning) {
       return;
     }
 
-    if(false == m_connection->IsConnected()) {
+    if (false == m_connection->IsConnected()) {
       auto retCode = m_connection->Connect();
-      if(false == noError(retCode)) {
+      if (false == noError(retCode)) {
         // Sleep a TODO configurable amount of time
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         continue;
@@ -148,12 +149,12 @@ void Producer::thread() {
     // Declare exchanges if not been declared
     // TODO possibly spawn off a seperate thread for this?
     if (false == m_channelsConnected) {
-      bool allGood {true};
+      bool allGood{true};
       if (false == m_threadRunning) continue;
       for (auto it : m_exchangeList) {
         if (false == it.second.m_connected) {
           auto retCode = m_connection->OpenChannel(it.second.m_channel);
-          if(serverFailure(retCode)) {
+          if (serverFailure(retCode)) {
             privateRestart();
           }
 
@@ -162,10 +163,10 @@ void Producer::thread() {
             continue;
           }
           if (it.second.m_isDeclare) {
-            retCode = m_connection->DeclareChannel(it.second.m_channel,
-                                                   it.first, it.second.m_type);
+            retCode = m_connection->DeclareExchange(it.second.m_channel,
+                                                    it.first, it.second.m_type);
             // TODO IF Error, reset channel (maybe remove from exchange list)
-            if(serverFailure(retCode)) {
+            if (serverFailure(retCode)) {
               privateRestart();
             }
           }
@@ -183,7 +184,7 @@ void Producer::thread() {
       continue;
     }
     auto retCode = m_connection->PublishMessage(*m_sendQueue.front());
-    if(serverFailure(retCode)) {
+    if (serverFailure(retCode)) {
       privateRestart();
     }
 
@@ -221,7 +222,7 @@ HARE_ERROR_E Producer::stop() {
   for (std::pair<std::string, ExchangeProperties> element : m_exchangeList) {
     element.second.m_connected = false;
   }
-  while(false == m_sendQueue.empty()) {
+  while (false == m_sendQueue.empty()) {
     amqp_bytes_free(m_sendQueue.front()->message);
     amqp_bytes_free(m_sendQueue.front()->routing_value);
     amqp_bytes_free(m_sendQueue.front()->exchange);
@@ -334,7 +335,7 @@ HARE_ERROR_E Producer::declareExchange(const std::string& exchange,
 HARE_ERROR_E Producer::Restart() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   retCode = stop();
-  if(noError(retCode)) {
+  if (noError(retCode)) {
     retCode = start();
   }
   return retCode;

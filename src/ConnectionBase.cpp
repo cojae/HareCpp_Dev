@@ -8,7 +8,7 @@ bool ConnectionBase::IsConnected() {
   return m_isConnected;
 }
 
-HARE_ERROR_E ConnectionBase::logIn() {
+HARE_ERROR_E ConnectionBase::login() {
   const std::lock_guard<std::mutex> lock(m_connMutex);
   LOG(LOG_DETAILED, "Attempting to log in to rabbitMQ  broker");
   auto retCode = HARE_ERROR_E::ALL_GOOD;
@@ -113,7 +113,7 @@ HARE_ERROR_E ConnectionBase::Connect() {
   }
 
   if (noError(retCode)) {
-    retCode = logIn();
+    retCode = login();
   }
 
   if (noError(retCode)) {
@@ -123,9 +123,9 @@ HARE_ERROR_E ConnectionBase::Connect() {
   return retCode;
 }
 
-HARE_ERROR_E ConnectionBase::DeclareChannel(int channel,
-                                            const std::string& exchange,
-                                            const std::string& type) {
+HARE_ERROR_E ConnectionBase::DeclareExchange(int channel,
+                                             const std::string& exchange,
+                                             const std::string& type) {
   const std::lock_guard<std::mutex> lock(m_connMutex);
   if (false == m_isConnected) {
     return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
@@ -183,9 +183,13 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
   }
 
   // If timestamp isn't set, set it here
-  if ( AMQP_BASIC_TIMESTAMP_FLAG != (message.properties._flags & AMQP_BASIC_TIMESTAMP_FLAG)) {
+  if (AMQP_BASIC_TIMESTAMP_FLAG !=
+      (message.properties._flags & AMQP_BASIC_TIMESTAMP_FLAG)) {
     message.properties._flags |= AMQP_BASIC_TIMESTAMP_FLAG;
-    auto curTimeInMicroSecs = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto curTimeInMicroSecs =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count();
     message.properties.timestamp = curTimeInMicroSecs;
   }
 
@@ -195,9 +199,10 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
 
   if (errorVal < 0) {
     LOG(LOG_ERROR, amqp_error_string2(errorVal));
-    // TODO split the decodeReply function into two, and use the status check for this
-    if( errorVal == AMQP_STATUS_SOCKET_ERROR ) {
-      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE ;
+    // TODO split the decodeReply function into two, and use the status check
+    // for this
+    if (errorVal == AMQP_STATUS_SOCKET_ERROR) {
+      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
     } else {
       retCode = HARE_ERROR_E::PUBLISH_ERROR;
     }
@@ -327,7 +332,7 @@ HARE_ERROR_E ConnectionBase::decodeRpcReply(amqp_rpc_reply_t reply) {
         }
         default:
           LOG(LOG_ERROR, "HareCpp doesn't have this error known");
-          printf("%d\n",reply.library_error);
+          printf("%d\n", reply.library_error);
           break;
       }
       break;

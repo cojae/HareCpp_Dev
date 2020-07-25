@@ -9,8 +9,9 @@ namespace HareCpp {
 
 void Consumer::privateRestart() {
   // We do this because it is coming from the thread we are destroying.
-  // Don't want to deadlock it/ Have 2 identical threads living, even if for brief
-  std::thread(&Consumer::Restart,this).detach();
+  // Don't want to deadlock it/ Have 2 identical threads living, even if for
+  // brief
+  std::thread(&Consumer::Restart, this).detach();
 }
 
 // TODO this function needs cleaning
@@ -26,9 +27,9 @@ int Consumer::smartBind(int channel) {
     sprintf(log, "Successfully opened channel: %d", channel);
     LOG(LOG_INFO, log);
   } else {
-    if( serverFailure(retCode) ) {
+    if (serverFailure(retCode)) {
       return -2;
-    } 
+    }
     char log[80];
     sprintf(log, "Unable to open channel: %d", channel);
     LOG(LOG_ERROR, log);
@@ -53,8 +54,8 @@ int Consumer::smartBind(int channel) {
             m_channelHandler.getBindingKey(channel).c_str(), channel);
     LOG(LOG_DETAILED, log);
 
-  } else if ( serverFailure(retCode)) {
-    return -2; // Need to restart
+  } else if (serverFailure(retCode)) {
+    return -2;  // Need to restart
   } else {
     return -1;
   }
@@ -64,9 +65,9 @@ int Consumer::smartBind(int channel) {
                                       m_channelHandler.getExchange(channel),
                                       m_channelHandler.getBindingKey(channel));
     if (false == noError(retCode)) {
-      if(serverFailure(retCode)) {
+      if (serverFailure(retCode)) {
         return -2;
-      } 
+      }
       m_connection->CloseChannel(channel);
       m_unboundChannels.push(channel);
       return -1;
@@ -75,12 +76,11 @@ int Consumer::smartBind(int channel) {
 
   retCode = m_connection->StartConsumption(channel, queueName);
   if (false == noError(retCode)) {
-    if( serverFailure(retCode)) {
+    if (serverFailure(retCode)) {
       return -2;
     } else {
       return -1;
     }
-
   }
 
   return channel;
@@ -126,8 +126,9 @@ void Consumer::thread() {
           LOG(LOG_INFO, "All Consumer Channels successfully created");
         }
       } else {
-        // Sleep a configurable (TODO) amount of time to reduce spamming a restarted broker
-        // This does actually speed up the time to reconnect by having a sleep
+        // Sleep a configurable (TODO) amount of time to reduce spamming a
+        // restarted broker This does actually speed up the time to reconnect by
+        // having a sleep
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         continue;
       }
@@ -165,7 +166,7 @@ void Consumer::thread() {
       m_channelHandler.process(std::make_pair(exchange, bindingKey),
                                newMessage);
 
-    } else if ( serverFailure(ret) ) {
+    } else if (serverFailure(ret)) {
       LOG(LOG_FATAL, "Restarting Consumer due to server error");
       privateRestart();
     }
