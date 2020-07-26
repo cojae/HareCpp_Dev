@@ -235,11 +235,14 @@ HARE_ERROR_E Producer::Stop() {
 /**
  * Intialize function
  */
-HARE_ERROR_E Producer::Initialize(const std::string& server, int port) {
+HARE_ERROR_E Producer::Initialize(const std::string& server, int port,
+                                  const std::string& username,
+                                  const std::string& password) {
   // Set up connection information
   m_producerMutex.lock();
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  m_connection = std::make_shared<connection::ConnectionBase>(server, port);
+  m_connection = std::make_shared<connection::ConnectionBase>(
+      server, port, username, password);
 
   if (noError(retCode)) {
     m_isInitialized = true;

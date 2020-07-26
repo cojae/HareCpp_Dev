@@ -1,3 +1,30 @@
+/*
+ * libharecpp - Wrapper Library around: rabbitmq-c - rabbitmq C library
+ *
+ * Copyright (c) 2020 Cody Williams
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <cstring>
@@ -16,28 +43,38 @@ void Consumer::privateRestart() {
 
 // TODO this function needs cleaning
 int Consumer::smartBind(int channel) {
+  // If we are not connected, then we need to be trying to reconnect
+  // and then periodically trying the channels again
   if (false == m_connection->IsConnected()) {
     m_unboundChannels.push(channel);
     return -1;
   }
 
+  /**
+   * Open the channel to be used to consume on
+   */
   auto retCode = m_connection->OpenChannel(channel);
   if (noError(retCode)) {
     char log[80];
     sprintf(log, "Successfully opened channel: %d", channel);
     LOG(LOG_INFO, log);
   } else {
+    // If there was a fatal exception (connection closed?) we need to restart
+    // everything
     if (serverFailure(retCode)) {
       return -2;
     }
     char log[80];
     sprintf(log, "Unable to open channel: %d", channel);
     LOG(LOG_ERROR, log);
-    // TODO Remove channelHandler instance of this... somethings fucky
     m_unboundChannels.push(channel);
     return -1;
   }
 
+  /**
+   * Declare the queue so the broker can publish to it (given the
+   * exchange/routing key combo)
+   */
   amqp_bytes_t queueName;
   retCode = m_connection->DeclareQueue(
       channel, m_channelHandler.GetQueueProperties(channel), queueName);
@@ -57,9 +94,13 @@ int Consumer::smartBind(int channel) {
   } else if (serverFailure(retCode)) {
     return -2;  // Need to restart
   } else {
+    m_unboundChannels.push(channel);
     return -1;
   }
 
+  /**
+   * Bind to the created queue
+   */
   {
     retCode = m_connection->BindQueue(channel, queueName,
                                       m_channelHandler.GetExchange(channel),
@@ -74,65 +115,78 @@ int Consumer::smartBind(int channel) {
     }
   }
 
+  /**
+   *  Start consumption on the generated queue
+   */
   retCode = m_connection->StartConsumption(channel, queueName);
   if (false == noError(retCode)) {
     if (serverFailure(retCode)) {
       return -2;
     } else {
+      m_unboundChannels.push(channel);
       return -1;
     }
   }
 
+  /**
+   * Return the created channel number as proof of its creation and useage
+   */
   return channel;
+}
+
+void Consumer::consume() {
+  const std::lock_guard<std::mutex> lock(m_consumerMutex);
+  // Empty unBoundChannels in case there are some stale ones
+  while (false == m_unboundChannels.empty()) {
+    m_unboundChannels.pop();
+  }
+  // Start up everything
+  for (int channel : m_channelHandler.GetChannelList()) {
+    {
+      char log[80];
+      sprintf(log, "Registering channel: %d", channel);
+      LOG(LOG_DETAILED, log);
+    }
+
+    if (smartBind(channel) == -2) {
+      privateRestart();
+    }
+  }
+  if (m_unboundChannels.size() != 0) {
+    m_unboundChannelThreadSig = new std::promise<void>();
+    m_futureObjUnboundChannel = m_unboundChannelThreadSig->get_future();
+    LOG(LOG_WARN, "Unbound Channel Thread Starting");
+
+    m_unboundChannelThreadRunning = true;
+    m_unboundChannelThread = std::thread(&Consumer::unboundChannelThread, this);
+
+    LOG(LOG_WARN, "Unbound Channel Thread Started");
+    // TODO Start unboundChannelThread
+  } else {
+    LOG(LOG_INFO, "All Consumer Channels successfully created");
+  }
 }
 
 void Consumer::thread() {
   while (m_futureObj.wait_for(std::chrono::milliseconds(0)) ==
          std::future_status::timeout) {
-    const std::lock_guard<std::mutex> lock(m_consumerMutex);
-
     if ((false == m_connection->IsConnected()) && m_threadRunning) {
       auto retCode = m_connection->Connect();
       if (noError(retCode)) {
-        // Empty unBoundChannels in case there are some stale ones
-        while (false == m_unboundChannels.empty()) {
-          m_unboundChannels.pop();
-        }
-        // Start up everything
-        for (int channel : m_channelHandler.GetChannelList()) {
-          // printf("Registering channel: %d\n", channel) ;
-          {
-            char log[80];
-            sprintf(log, "Registering channel: %d", channel);
-            LOG(LOG_DETAILED, log);
-          }
-
-          if (smartBind(channel) == -2) {
-            privateRestart();
-          }
-        }
-        if (m_unboundChannels.size() != 0) {
-          m_unboundChannelThreadSig = new std::promise<void>();
-          m_futureObjUnboundChannel = m_unboundChannelThreadSig->get_future();
-          LOG(LOG_WARN, "Unbound Channel Thread Starting");
-
-          m_unboundChannelThreadRunning = true;
-          m_unboundChannelThread =
-              std::thread(&Consumer::unboundChannelThread, this);
-
-          LOG(LOG_WARN, "Unbound Channel Thread Started");
-          // TODO Start unboundChannelThread
-        } else {
-          LOG(LOG_INFO, "All Consumer Channels successfully created");
-        }
+        consume();
+        // Start back at the begining before starting to consume
+        continue;
       } else {
         // Sleep a configurable (TODO) amount of time to reduce spamming a
-        // restarted broker This does actually speed up the time to reconnect by
-        // having a sleep
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        // restarted broker. This does actually speed up the time to reconnect
+        // by having a sleep
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(CONNECTION_RETRY_TIMEOUT_MILLISECONDS));
         continue;
       }
     }
+
+    const std::lock_guard<std::mutex> lock(m_consumerMutex);
 
     amqp_maybe_release_buffers(m_connection->Connection());
 

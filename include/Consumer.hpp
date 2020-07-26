@@ -93,11 +93,9 @@ class Consumer {
   std::shared_ptr<connection::ConnectionBase> m_connection;
 
   /**
-   * Mutexes used throughout the class, though consumerMutex may be unneccessary
-   * with ConnectionBase (TODO)
+   * Mutexes used throughout the class
    */
-  std::mutex m_consumerMutex;
-  std::mutex m_connectionMutex;
+  mutable std::mutex m_consumerMutex;
 
   /**
    * bools to determine if the 2 main threads are already running
@@ -118,6 +116,13 @@ class Consumer {
   std::future<void> m_futureObjUnboundChannel;
 
   /**
+   * Start up all channels and start consuming on them.  This method uses
+   * smartBind() to do creation and binding of the queues.  It also holds the
+   * mutex to keep smartBind thread safe (it itself doesn't use mutexes).
+   */
+  void consume();
+
+  /**
    * Two main threads that could run through the lifetime of Consumer
    */
   void thread();
@@ -129,6 +134,11 @@ class Consumer {
    *  Binds to a queue/exchange
    *  If a channel exception is received, the channel is added to
    *  m_unboundChannels queue to be periodically tried again
+   *
+   *  NOTE: does not use a mutex, as it is assumed the caller method will hold
+   * the lock.  This is not thread safe!
+   *
+   * @param [in] channel : the channel to establish to the broker
    */
   int smartBind(int channel);
 
@@ -175,9 +185,6 @@ class Consumer {
   HARE_ERROR_E Start();
   HARE_ERROR_E Stop();
 
-  // TODO can i delete this?
-  void operator()() { thread(); }
-
   /**
    * Subscribe to an exchange and binding/routing key.  Use queue properties to
    * define the queue being generated and a callback function to be called upon
@@ -205,7 +212,10 @@ class Consumer {
    * // TODO this requires some rewrite to support more rabbitmq settings
    * (user/password) I haven't gotten around to make this yet
    */
-  HARE_ERROR_E Initialize(const std::string& server, int port);
+  HARE_ERROR_E Initialize(const std::string& server = "localhost",
+                          int port = 5672,
+                          const std::string& username = "guest",
+                          const std::string& password = "guest");
 
   /**
    * Restart function
@@ -233,12 +243,12 @@ class Consumer {
     m_connection->CloseConnection();
   };
 
-  bool IsInitialized() {
+  bool IsInitialized() const {
     const std::lock_guard<std::mutex> lock(m_consumerMutex);
     return m_isInitialized;
   }
 
-  bool IsRunning() {
+  bool IsRunning() const {
     const std::lock_guard<std::mutex> lock(m_consumerMutex);
     return m_threadRunning;
   }

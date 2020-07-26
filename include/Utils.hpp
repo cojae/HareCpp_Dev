@@ -46,10 +46,20 @@ inline amqp_bytes_t hare_cstring_bytes(const char *str) {
   return result;
 };
 
+/**
+ * Turns amqp_bytes_t into a string (via static cast and creation of
+ * std::string)
+ */
 inline std::string hare_bytes_to_string(amqp_bytes_t bytes) {
   return std::string(static_cast<char *>(bytes.bytes), bytes.len);
 }
 
+/**
+ * Turn rpc reply into a char* exception string.  This is convenient for
+ * logging.
+ *
+ * NOTE: May be unused, as connectionBase seems to do this fine
+ */
 inline const char *amqp_server_exception_string(amqp_rpc_reply_t r) {
   int res;
   static char s[512];
@@ -80,6 +90,9 @@ inline const char *amqp_server_exception_string(amqp_rpc_reply_t r) {
   return res >= 0 ? s : NULL;
 }
 
+/**
+ * General debug function, used for logging out unknown rpc replies
+ */
 inline const char *amqp_rpc_reply_string(amqp_rpc_reply_t r) {
   switch (r.reply_type) {
     case AMQP_RESPONSE_NORMAL:
