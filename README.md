@@ -1,7 +1,19 @@
 # HareCpp_Dev
 
-Work in progress for the HareCpp repository (a rabbitmq-c wrapper).  So that i can have more eyes on it for peer review, i have created this temporary Dev repository.  It will hold the code while it is being worked on.  But please do not look at this as a final product, my naming conventions are a little wacky and there are about 30 Todos floating around the codebase.  
+Work in Progress
 
-Hopefully this will be cleaned up in the next week or so, but until then I'd like to start receiving input on the design decisions I have made.  Yes, i know some methods start with uppercase while some don't, I am moving my style over to more like golang style (capital first letter for public facing methods), I have not been able to get it 100% consistent yet as other things have been taking my focus away from it.  So please bear with me with things like that.  Again, it requires a great deal of cleaning
+Published here for peer review purposes.  There are many issues that need resolved before final publish
 
-Also a pre-compiled header is something i don't use in my professional life, so i'm playing with that here (pch.hpp).  Likely i am not using it correctly and need to further research it
+# Purpose
+An ease of access pub/sub library to use rabbitmq.  I am trying to make a library in which the user does not need to know the underlying AMQP protocol and instead use a very high level adoption of the api.
+
+# Producer Class
+Creates a publisher that receives Send requests with an exchange, a routing key, and a HareCpp::Message.  This message goes on a queue to be sent out, while a thread is running through said queue and publishing messages accordingly.
+
+# Consumer Class
+Creates a subscriber that allows the user to set a callback to a particular exchange/routing key combination.  Once a message is received of this type, the callback is called.  The callback being a `void callback_name(const HareCpp::Message& message)` function.
+
+# Messaging Note
+Currently the default message type is std::string under the assumption that protocolbuffers will be used, or a cast from string to another format.  This is not the best long term solution, however, and will eventually be made more agnostic.
+
+
