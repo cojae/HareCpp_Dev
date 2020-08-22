@@ -74,19 +74,24 @@ class Producer {
    * establishing connection to the broker, as they are all declared/opened up
    * once a connection is established (Start() function is called)
    *
-   * @param [in] channel : channel used for this exchange
+   * @param optional [in] channel : channel used for this exchange
    *
-   * @param [in] isDeclare : when connection is established, this flag will be
-   * used to determine if we need to declare this exchange prior to
+   * @param optional [in] isDeclare : when connection is established, this flag
+   * will be used to determine if we need to declare this exchange prior to
    * using/connecting to it.
    *
-   * @param [in] type : type of exchange we are using.  Defaults to "direct"
+   * @param optional [in] type : type of exchange we are using.  Defaults to
+   * "direct"
    *
    */
   struct ExchangeProperties {
     ExchangeProperties(int channel = -1, bool isDeclare = false,
                        const std::string& type = "direct")
-        : m_channel(channel), m_isDeclare(isDeclare), m_type(type){};
+        : m_channel(channel),
+          m_connected(false),
+          m_isDeclare(isDeclare),
+          m_type(type){};
+
     int m_channel;
     bool m_connected;
 
@@ -95,13 +100,15 @@ class Producer {
   };
 
   /**
-   * Private method restart, this spins off a thread to run Restart() function
-   * call.  This is due to a deadlock that can occur when trying to kill the
-   * thread while in the thread itself. This likely is a symptom of some
-   * problems in the thread procedure itself, but not sure until further
-   * investigation is done TODO.
+   *  Clears the queue of messages to be sent out, freeing the memory
    */
-  void privateRestart();
+  void clearActiveSendQueue();
+
+  /**
+   * Closes the connection after a failure, to be retried by active producer
+   * thread
+   */
+  void closeConnection();
 
   /**
    * Hashmap to easily find exchange information when sending
@@ -125,12 +132,12 @@ class Producer {
    */
   std::string m_exchange;
 
+  /**
+   * Stateful variables
+   */
   bool m_isInitialized;
-
   bool m_threadRunning;
-
   bool m_channelsConnected;
-
   int m_curChannelNumber;
 
   // TODO i use future/promise for thread control, but i'm starting to think
@@ -143,7 +150,20 @@ class Producer {
   int addExchange(const std::string& exchange);
   int addExchange(const std::string& exchange, const std::string& type);
 
-  std::mutex m_producerMutex;
+  /**
+   *  Publish the next message in the m_sendQueue
+   */
+  void publishNextInQueue();
+
+  /**
+   * Create and connect all exchanges to send on to a unique channel ID.
+   * If the exchange needs to be declared, this is where it will happen.
+   */
+  void connectChannels();
+
+  bool channelsConnected() const;
+
+  mutable std::mutex m_producerMutex;
 
   std::thread m_producerThread;
 
@@ -159,7 +179,7 @@ class Producer {
         m_exitThreadSignal(nullptr){};
 
   // Constructors with exchanges defined, may be thrown out TODO
-  Producer(std::string&& exchange)
+  explicit Producer(std::string&& exchange)
       : m_exchange(std::move(exchange)),
         m_isInitialized(false),
         m_threadRunning(false),
@@ -167,7 +187,7 @@ class Producer {
         m_curChannelNumber(1),
         m_exitThreadSignal(nullptr){};
 
-  Producer(const std::string& exchange)
+  explicit Producer(const std::string& exchange)
       : m_exchange(exchange),
         m_isInitialized(false),
         m_threadRunning(false),
@@ -175,11 +195,51 @@ class Producer {
         m_curChannelNumber(1),
         m_exitThreadSignal(nullptr){};
 
+  /**
+   * Sends a message given the routing key.  This uses the last used exchange as
+   * the exchange for the message to be sent out. The message gets converted
+   * over to HareCpp::helper::RawMessage structure to be put on a queue to be
+   * sent out in the main Producer thread (assuming its been started).
+   *
+   * @param [in] routing_value : the routing key used to distribute out the
+   * message on the last used exchange
+   *
+   * @param [in] message : the HareCpp::Message with the contents to be sent out
+   *
+   * @returns HARE_ERROR_E error code
+   */
   HARE_ERROR_E Send(const std::string& routing_value, Message& message);
 
+  /**
+   * Sends a message given both the exchange and routing key used.  The exchange
+   * set by this call will be the default for the next call of the former
+   * Send(routing_value,message) declaration.  Though, this may change later.
+   * The message given gets converted to a HareCpp::helper::RawMessage structure
+   * to be put on a queue to be sent out in the main Producer thread (assuming
+   * its been started).
+   *
+   * @param [in] exchange : the rabbitmq exchange the message is sent on
+   *
+   * @param [in] routing_value : the routing key used to route the message on
+   * the exchange
+   *
+   * @param [in] message : the HareCpp::Message with the contents to be sent out
+   *
+   * @returns HARE_ERROR_E error code
+   */
   HARE_ERROR_E Send(const std::string& exchange,
                     const std::string& routing_value, Message& message);
 
+  /**
+   *  Sets the default used exchange for sending messages, this is also set when
+   * a Send call is made with the exchange as a parameter. Again, this may be
+   * removed in future iterations as it doesn't seem very necessary and instead
+   * adds to complexity and confusion of maintanence.
+   *
+   * @param [in] exchange : the rabbitmq exchange to be made default
+   *
+   * @returns void
+   */
   void SetExchange(const std::string& exchange);
 
   HARE_ERROR_E DeclareExchange(const std::string& exchange,
@@ -208,7 +268,8 @@ class Producer {
    */
   ~Producer();
 
-  bool IsInitialized() { return m_isInitialized; }
+  bool IsInitialized() const;
+  bool IsRunning() const;
 };
 
 }  // Namespace HareCpp

@@ -96,6 +96,7 @@ class Consumer {
    * Mutexes used throughout the class
    */
   mutable std::mutex m_consumerMutex;
+  mutable std::mutex m_threadMutex;
 
   /**
    * bools to determine if the 2 main threads are already running
@@ -117,10 +118,11 @@ class Consumer {
 
   /**
    * Start up all channels and start consuming on them.  This method uses
-   * smartBind() to do creation and binding of the queues.  It also holds the
-   * mutex to keep smartBind thread safe (it itself doesn't use mutexes).
+   * setupAndConsume() to do creation and binding of the queues.  It also holds
+   * the mutex to keep setupAndConsume thread safe (it itself doesn't use
+   * mutexes).
    */
-  void consume();
+  HARE_ERROR_E startConsumption();
 
   /**
    * Two main threads that could run through the lifetime of Consumer
@@ -131,7 +133,7 @@ class Consumer {
   std::thread m_unboundChannelThread;
 
   /**
-   *  Binds to a queue/exchange
+   *  Binds and consumes a queue/exchange
    *  If a channel exception is received, the channel is added to
    *  m_unboundChannels queue to be periodically tried again
    *
@@ -139,8 +141,56 @@ class Consumer {
    * the lock.  This is not thread safe!
    *
    * @param [in] channel : the channel to establish to the broker
+   *
+   * @returns HARE_ERROR_E : the success of the binding or the server failure
+   * status
    */
-  int smartBind(int channel);
+  HARE_ERROR_E setupAndConsume(int channel);
+
+  /**
+   * Opens a channel using the ConnectionBase class
+   *
+   * @param [in] channel : the channel to establish the connection
+   * @returns HARE_ERROR_E : server failure or general connection issues
+   *
+   */
+  HARE_ERROR_E openChannel(const int channel);
+
+  /**
+   * declares a queue using the ConnectionBase class
+   *
+   * @param [in] channel : the channel to declare the queue on
+   * @param [out] queueName : the name of the queue to be used later to
+   * bind/read on
+   *
+   * @returns HARE_ERROR_E : server failure or general connection issues
+   *
+   */
+  HARE_ERROR_E declareQueue(const int channel, amqp_bytes_t& queueName);
+
+  /**
+   * binds to a queue using the ConnectionBase class
+   *
+   * @param [in] channel : the channel to bind the queue on
+   * @param [in] queueName : the name of the queue to be used to bind
+   *
+   * @returns HARE_ERROR_E : server failure or general connection issues
+   *
+   */
+  HARE_ERROR_E bindQueue(const int channel, const amqp_bytes_t& queueName);
+
+  /**
+   * starts consumption on a channel using the queueName declared/bound
+   * a prerequisite is that the former has already been called.
+   *
+   * @param [in] channel : the channel to be consumed on
+   * @param [in] queueName : the name of the queue to be used to read from the
+   * channel
+   *
+   * @returns HARE_ERROR_E : server failure or general connection issues
+   *
+   */
+  HARE_ERROR_E consume(const int channel, const amqp_bytes_t& queueName);
 
   /**
    * Queue of unbound channels that need to be retried in the
@@ -158,13 +208,11 @@ class Consumer {
   void stopUnboundChannelThread();
 
   /**
-   * Private method restart, this spins off a thread to run Restart() function
-   * call.  This is due to a deadlock that can occur when trying to kill the
-   * thread while in the thread itself. This likely is a symptom of some
-   * problems in the thread procedure itself, but not sure until further
-   * investigation is done TODO.
+   * Similar to Start() call, except created to start up the
+   * unboundChannelThread. This thread runs and retries all channels/queues that
+   * are not being subscribed on
    */
-  void privateRestart();
+  void startUnboundChannelThread();
 
  public:
   /**
@@ -180,7 +228,8 @@ class Consumer {
   /**
    * Start() and Stop() the main consumer thread
    *
-   * TODO make these start with an uppercase letter
+   * @returns HARE_ERROR_E return code, check for
+   * HareCpp::HARE_ERROR_E::ALL_GOOD
    */
   HARE_ERROR_E Start();
   HARE_ERROR_E Stop();
@@ -206,11 +255,14 @@ class Consumer {
   /**
    * Intialize function
    *
-   * @param [in] server : the server/host of the rabbitmq broker.
-   * @param [in] port : the port used by the rabbitmq broker.
+   * @param optional [in] server : the server/host of the rabbitmq broker.
+   * @param optional [in] port : the port used by the rabbitmq broker.
+   * @param optional [in] username : the username to be used by rabbitmq
+   * connection.
+   * @param optional [in] password : the password to be used by rabbitmq
+   * connection.
    *
-   * // TODO this requires some rewrite to support more rabbitmq settings
-   * (user/password) I haven't gotten around to make this yet
+   * @returns HARE_ERROR_E
    */
   HARE_ERROR_E Initialize(const std::string& server = "localhost",
                           int port = 5672,
@@ -239,8 +291,9 @@ class Consumer {
    * Close connection and stop main threads
    */
   ~Consumer() {
-    Stop();
-    m_connection->CloseConnection();
+    if (m_threadRunning) Stop();
+    if (m_isInitialized) m_connection->CloseConnection();
+    m_isInitialized = false;
   };
 
   bool IsInitialized() const {

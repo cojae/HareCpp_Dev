@@ -35,11 +35,11 @@ ChannelHandler::ChannelHandler()
 int ChannelHandler::AddChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair,
     TD_Callback& callback) {
-  int retCode = -1;
+  auto retCode { -1 };
   std::lock_guard<std::mutex> lock(m_handlerMutex);
   // Check that we don't already have it
 
-  auto it = m_bindingPairLookup.find(bindingPair);
+  auto it { m_bindingPairLookup.find(bindingPair) };
 
   if (it != m_bindingPairLookup.end()) {
     char log[80];
@@ -79,7 +79,7 @@ int ChannelHandler::AddChannelProcessor(
 
 int ChannelHandler::RemoveChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair) {
-  auto it = m_bindingPairLookup.find(bindingPair);
+  auto it { m_bindingPairLookup.find(bindingPair) };
   if (it != m_bindingPairLookup.end()) {
     m_channelLookup.erase(*it->second->m_channel);
     m_bindingPairLookup.erase(it);
@@ -98,7 +98,7 @@ void ChannelHandler::Process(
     const std::pair<std::string, std::string>& bindingPair,
     const Message& message) {
   std::lock_guard<std::mutex> lock(m_handlerMutex);
-  auto it = m_bindingPairLookup.find(bindingPair);
+  auto it { m_bindingPairLookup.find(bindingPair)};
   if (it == m_bindingPairLookup.end()) {
     return;  // Error
   }

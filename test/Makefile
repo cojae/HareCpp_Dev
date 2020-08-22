@@ -1,26 +1,33 @@
 CPP=clang++ --std=c++11
 CPPFLAGS=-g -Wall -O2 -Wextra
-LDLIBS=-L/usr/local/lib -L../lib -lpthread -lharecpp 
+LDLIBS=-L/usr/local/lib -L../lib -lpthread -lharecpp -lgtest
 INCDIR=-I../include
-OBJDIR=../obj
-LIBDIR=../lib
+OBJDIR=./obj
+BINDIR=./bin
+SRCDIR=./src
 
-SRC=$(wildcard *.cpp)
-OBJ=$(SRC:%.cpp=%)
+SRC=$(wildcard $(SRCDIR)/*.cpp)
+OBJ=$(SRC:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
-all: GeneralUnitTest StatisticsTest
+all: build $(BINDIR)/testOne
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp 
+	$(CPP) $(CPPFLAGS) -fPIC $(INCDIR) -c $< -o $@
+
+$(BINDIR)/testOne: $(OBJ)
+	$(CPP) $(CPPFLAGS) $(INCLUDE) $(OBJ) -o $@ $(LDLIBS)
 
 
-GeneralUnitTest: 
-	$(CPP) $(CPPFLAGS) $(INCDIR) GeneralUnitTest.cpp -o $@ $(LDLIBS)
+build:
+	@mkdir -p ./bin
+	@mkdir -p ./obj
 
-StatisticsTest: 
-	$(CPP) $(CPPFLAGS) $(INCDIR) StatisticsTest.cpp -o $@ $(LDLIBS)
-
-.PHONY: clean 
+.PHONY: clean test
 
 clean:
-	rm -f *.o
-	rm -f GeneralUnitTest
-	rm -f StatisticsTest
+	rm -rf bin
+	rm -rf obj
+
+test: all
+	bin/testOne
 

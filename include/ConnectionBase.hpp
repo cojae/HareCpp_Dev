@@ -130,7 +130,9 @@ class ConnectionBase {
    * user of this class
    * @returns HARE_ERROR_E
    */
-  HARE_ERROR_E decodeRpcReply(amqp_rpc_reply_t reply);
+  HARE_ERROR_E decodeRpcReply(const amqp_rpc_reply_t& reply);
+
+  HARE_ERROR_E decodeLibraryException(const amqp_rpc_reply_t& reply);
 
  public:
   /**

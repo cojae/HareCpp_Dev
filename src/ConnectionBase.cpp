@@ -238,6 +238,7 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
   return retCode;
 }
 HARE_ERROR_E ConnectionBase::ConsumeMessage(amqp_envelope_t& envelope) {
+  if (false == IsConnected()) return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
   const std::lock_guard<std::mutex> lock(m_connMutex);
 
   // TODO allow millisecs/seconds to be used here
@@ -300,7 +301,7 @@ HARE_ERROR_E ConnectionBase::BindQueue(int channel,
   return decodeRpcReply(amqp_get_rpc_reply(m_conn));
 }
 
-HARE_ERROR_E ConnectionBase::decodeRpcReply(amqp_rpc_reply_t reply) {
+HARE_ERROR_E ConnectionBase::decodeRpcReply(const amqp_rpc_reply_t& reply) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
   switch (reply.reply_type) {
@@ -311,57 +312,7 @@ HARE_ERROR_E ConnectionBase::decodeRpcReply(amqp_rpc_reply_t reply) {
       retCode = HARE_ERROR_E::NO_RPC_REPLY;
       break;
     case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-      switch (reply.library_error) {
-        case AMQP_STATUS_INCOMPATIBLE_AMQP_VERSION: {
-          retCode = HARE_ERROR_E::INVALID_AMQP_VERSION;
-          LOG(LOG_FATAL, "Invalid AMQP Version");
-          break;
-        }
-        case AMQP_STATUS_CONNECTION_CLOSED: {
-          retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
-          LOG(LOG_FATAL, "Connection Close Library Exception received");
-          break;
-        }
-        case AMQP_STATUS_INVALID_PARAMETER: {
-          retCode = HARE_ERROR_E::INVALID_PARAMETERS;
-          LOG(LOG_ERROR, "Invalid Parameters Received by broker");
-          break;
-        }
-        case AMQP_STATUS_SOCKET_ERROR: {
-          retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
-          LOG(LOG_FATAL, "Socket Error received");
-          break;
-        }
-        case AMQP_STATUS_TIMEOUT: {
-          retCode = HARE_ERROR_E::TIMEOUT_OCCURED;
-          LOG(LOG_DETAILED, "Timeout Occured");
-          break;
-        }
-        case AMQP_STATUS_SOCKET_CLOSED: {
-          retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
-          LOG(LOG_FATAL, "Socket Closed Error received");
-          break;
-        }
-        case AMQP_STATUS_SSL_CONNECTION_FAILED: {
-          retCode = HARE_ERROR_E::SERVER_AUTHENTICATION_FAILURE;
-          LOG(LOG_FATAL, "SSL Connection Failure received");
-          break;
-        }
-        case AMQP_STATUS_SSL_HOSTNAME_VERIFY_FAILED: {
-          retCode = HARE_ERROR_E::SERVER_AUTHENTICATION_FAILURE;
-          LOG(LOG_FATAL, "SSL Hostname Verification Failure received");
-          break;
-        }
-        case AMQP_STATUS_UNEXPECTED_STATE: {
-          retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
-          LOG(LOG_FATAL, "Server Connection Failure");
-          break;
-        }
-        default:
-          LOG(LOG_ERROR, "HareCpp doesn't have this error known");
-          printf("%d\n", reply.library_error);
-          break;
-      }
+      retCode = decodeLibraryException(reply);
       break;
     case AMQP_RESPONSE_SERVER_EXCEPTION:
       switch (reply.reply.id) {
@@ -380,6 +331,63 @@ HARE_ERROR_E ConnectionBase::decodeRpcReply(amqp_rpc_reply_t reply) {
           break;
         }
       }
+  }
+  return retCode;
+}
+
+HARE_ERROR_E ConnectionBase::decodeLibraryException(
+    const amqp_rpc_reply_t& reply) {
+  auto retCode = HARE_ERROR_E::ALL_GOOD;  // TODO not a good error to return
+  switch (reply.library_error) {
+    case AMQP_STATUS_INCOMPATIBLE_AMQP_VERSION: {
+      retCode = HARE_ERROR_E::INVALID_AMQP_VERSION;
+      LOG(LOG_FATAL, "Invalid AMQP Version");
+      break;
+    }
+    case AMQP_STATUS_CONNECTION_CLOSED: {
+      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
+      LOG(LOG_FATAL, "Connection Close Library Exception received");
+      break;
+    }
+    case AMQP_STATUS_INVALID_PARAMETER: {
+      retCode = HARE_ERROR_E::INVALID_PARAMETERS;
+      LOG(LOG_ERROR, "Invalid Parameters Received by broker");
+      break;
+    }
+    case AMQP_STATUS_SOCKET_ERROR: {
+      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
+      LOG(LOG_FATAL, "Socket Error received");
+      break;
+    }
+    case AMQP_STATUS_TIMEOUT: {
+      retCode = HARE_ERROR_E::TIMEOUT_OCCURED;
+      LOG(LOG_DETAILED, "Timeout Occured");
+      break;
+    }
+    case AMQP_STATUS_SOCKET_CLOSED: {
+      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
+      LOG(LOG_FATAL, "Socket Closed Error received");
+      break;
+    }
+    case AMQP_STATUS_SSL_CONNECTION_FAILED: {
+      retCode = HARE_ERROR_E::SERVER_AUTHENTICATION_FAILURE;
+      LOG(LOG_FATAL, "SSL Connection Failure received");
+      break;
+    }
+    case AMQP_STATUS_SSL_HOSTNAME_VERIFY_FAILED: {
+      retCode = HARE_ERROR_E::SERVER_AUTHENTICATION_FAILURE;
+      LOG(LOG_FATAL, "SSL Hostname Verification Failure received");
+      break;
+    }
+    case AMQP_STATUS_UNEXPECTED_STATE: {
+      retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
+      LOG(LOG_FATAL, "Server Connection Failure");
+      break;
+    }
+    default:
+      LOG(LOG_ERROR, "HareCpp doesn't have this error known");
+      printf("%d\n", reply.library_error);
+      break;
   }
   return retCode;
 }
