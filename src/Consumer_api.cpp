@@ -51,8 +51,8 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
         std::make_pair(exchange, binding_key), f);
 
     if (channel == -1) {
-      char log[80];
-      sprintf(log, "Unable to subscribe to %s : %s", exchange.c_str(),
+      char log[LOG_MAX_CHAR_SIZE];
+      snprintf(log,LOG_MAX_CHAR_SIZE,"Unable to subscribe to %s : %s", exchange.c_str(),
               binding_key.c_str());
       LOG(LOG_ERROR, log);
       retCode = HARE_ERROR_E::UNABLE_TO_SUBSCRIBE;

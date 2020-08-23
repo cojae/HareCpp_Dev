@@ -49,12 +49,12 @@ void Consumer::stopUnboundChannelThread() {
 HARE_ERROR_E Consumer::openChannel(const int channel) {
   auto retCode = m_connection->OpenChannel(channel);
   if (noError(retCode)) {
-    char log[80];
-    sprintf(log, "Successfully opened channel: %d", channel);
+    char log[LOG_MAX_CHAR_SIZE];
+    snprintf(log,LOG_MAX_CHAR_SIZE,"Successfully opened channel: %d", channel);
     LOG(LOG_INFO, log);
   } else {
-    char log[80];
-    sprintf(log, "Unable to open channel: %d", channel);
+    char log[LOG_MAX_CHAR_SIZE];
+    snprintf(log,LOG_MAX_CHAR_SIZE,"Unable to open channel: %d", channel);
     LOG(LOG_ERROR, log);
   }
   return retCode;
@@ -65,8 +65,8 @@ HARE_ERROR_E Consumer::declareQueue(const int channel,
   auto retCode = m_connection->DeclareQueue(
       channel, m_channelHandler.GetQueueProperties(channel), queueName);
   if (noError(retCode)) {
-    char log[80];
-    sprintf(log, "Created Queue: %s", hare_bytes_to_string(queueName).c_str());
+    char log[LOG_MAX_CHAR_SIZE];
+    snprintf(log,LOG_MAX_CHAR_SIZE,"Created Queue: %s", hare_bytes_to_string(queueName).c_str());
     LOG(LOG_INFO, log);
 
     m_channelHandler.SetQueueName(channel, queueName);
@@ -76,8 +76,8 @@ HARE_ERROR_E Consumer::declareQueue(const int channel,
 
 HARE_ERROR_E Consumer::bindQueue(const int channel,
                                  const amqp_bytes_t& queueName) {
-  char log[80];
-  sprintf(log, "Binding: %s %s %s %d", hare_bytes_to_string(queueName).c_str(),
+  char log[LOG_MAX_CHAR_SIZE];
+  snprintf(log,LOG_MAX_CHAR_SIZE,"Binding: %s %s %s %d", hare_bytes_to_string(queueName).c_str(),
           m_channelHandler.GetExchange(channel).c_str(),
           m_channelHandler.GetBindingKey(channel).c_str(), channel);
   LOG(LOG_DETAILED, log);
@@ -98,8 +98,8 @@ HARE_ERROR_E Consumer::setupAndConsume(int channel) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   amqp_bytes_t queueName;
 
-  char log[80];
-  sprintf(log, "Registering channel: %d", channel);
+  char log[LOG_MAX_CHAR_SIZE];
+  snprintf(log,LOG_MAX_CHAR_SIZE,"Registering channel: %d", channel);
   LOG(LOG_DETAILED, log);
 
   if (false == m_connection->IsConnected()) {
@@ -203,8 +203,8 @@ void Consumer::thread() {
                       envelope.routing_key.len);
 
       {
-        char log[80];
-        sprintf(log, "Received message on %s : %s", exchange.c_str(),
+        char log[LOG_MAX_CHAR_SIZE];
+        snprintf(log,LOG_MAX_CHAR_SIZE,"Received message on %s : %s", exchange.c_str(),
                 bindingKey.c_str());
         LOG(LOG_DETAILED, log);
       }

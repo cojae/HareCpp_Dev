@@ -270,8 +270,9 @@ class ConnectionBase {
                          const std::string& bindingKey);
 
   /**
-   * May not be necessary anymore, but returns a pointer to the current
-   * connection state
+   * May not be necessary, but returns a pointer to the current
+   * connection state. Useful for running particular amqp commands that are not
+   * implemented in this library
    *
    * @returns amqp_connection_state_t m_conn
    */

@@ -42,17 +42,17 @@ int ChannelHandler::AddChannelProcessor(
   auto it { m_bindingPairLookup.find(bindingPair) };
 
   if (it != m_bindingPairLookup.end()) {
-    char log[80];
+    char log[LOG_MAX_CHAR_SIZE];
     // TODO sprintf is not safe, please fix all calls
-    sprintf(log, "%s : %s already exists, updating callback",
+    snprintf(log, LOG_MAX_CHAR_SIZE, "%s : %s already exists, updating callback",
             bindingPair.first.c_str(), bindingPair.second.c_str());
     LOG(LOG_WARN, log);
     // Set new callback
     it->second->m_callback = callback;
   } else /* New Pairing */
   {
-    char log[80];
-    sprintf(log, "%s : %s doesn't exist, creating in map",
+    char log[LOG_MAX_CHAR_SIZE];
+    snprintf(log,LOG_MAX_CHAR_SIZE,"%s : %s doesn't exist, creating in map",
             bindingPair.first.c_str(), bindingPair.second.c_str());
     LOG(LOG_DETAILED, log);
 
