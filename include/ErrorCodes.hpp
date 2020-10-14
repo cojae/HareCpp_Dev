@@ -100,6 +100,10 @@ enum class HARE_ERROR_E : unsigned int {
    */
   UNABLE_TO_OPEN_CHANNEL,
   /**
+   * Unable to close channel
+   */
+  UNABLE_TO_CLOSE_CHANNEL,
+  /**
    * General Channel Exception. Must restart it
    */
   CHANNEL_EXCEPTION,

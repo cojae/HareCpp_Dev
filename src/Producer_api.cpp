@@ -62,44 +62,42 @@ HARE_ERROR_E Producer::Send(const std::string& routing_value,
   return retCode;
 }
 
+int Producer::QueueSize() const {
+  std::lock_guard<std::mutex> lock{m_producerMutex};
+  return m_sendQueue.size();
+}
+
 HARE_ERROR_E Producer::Send(const std::string& exchange,
                             const std::string& routing_value,
                             Message& message) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
-  // TODO CHeck return value
-  addExchange(exchange);
+  if (addExchange(exchange) < 0) 
+    retCode = HARE_ERROR_E::INVALID_PARAMETERS ;
+  else {
 
-  const std::lock_guard<std::mutex> lock(m_producerMutex);
+    const std::lock_guard<std::mutex> lock{m_producerMutex};
 
-  auto builtMessage = std::make_shared<helper::RawMessage>();
+    auto builtMessage = std::make_shared<helper::RawMessage>();
 
-  builtMessage->exchange = hare_cstring_bytes(exchange.c_str());
+    builtMessage->exchange = hare_cstring_bytes(exchange.c_str());
 
-  builtMessage->routing_value = hare_cstring_bytes(routing_value.c_str());
+    builtMessage->routing_value = hare_cstring_bytes(routing_value.c_str());
 
-  builtMessage->properties = *message.getAmqpProperties();
+    builtMessage->properties = *message.getAmqpProperties();
 
-  builtMessage->message = hare_cstring_bytes(message.payload()->c_str());
+    builtMessage->message = hare_cstring_bytes(message.payload()->c_str());
 
-  builtMessage->channel = m_exchangeList[m_exchange].m_channel;
+    builtMessage->channel = m_exchangeList[m_exchange].m_channel;
 
-  // TODO allow user to change this default value...also make this constexpr
-  // OR don't even do this ?
-  /*if ( m_sendQueue.size() >= 15 ) {
-    retCode = HARE_ERROR_E::PRODUCER_QUEUE_FULL;
-    m_sendQueue.pop(); // Pop the next in line off
-  }*/
-  // NOTE, this breaks shit... why? idk plz investigate. may show me a race
-  // condition TODO
-
-  m_sendQueue.push(builtMessage);
+    m_sendQueue.push(builtMessage);
+  }
 
   return retCode;
 }
 
 HARE_ERROR_E Producer::Start() {
-  const std::lock_guard<std::mutex> lock(m_producerMutex);
+  const std::lock_guard<std::mutex> lock{m_producerMutex};
 
   m_exitThreadSignal = new std::promise<void>();
 
@@ -229,12 +227,12 @@ HARE_ERROR_E Producer::Restart() {
 }
 
 bool Producer::IsRunning() const {
-  const std::lock_guard<std::mutex> lock(m_producerMutex);
+  const std::lock_guard<std::mutex> lock{m_producerMutex};
   return m_threadRunning;
 }
 
 bool Producer::IsInitialized() const {
-  const std::lock_guard<std::mutex> lock(m_producerMutex);
+  const std::lock_guard<std::mutex> lock{m_producerMutex};
   return m_isInitialized;
 }
 

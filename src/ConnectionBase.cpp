@@ -60,7 +60,6 @@ ConnectionBase::ConnectionBase(const std::string& hostname, int port,
     : m_socket(nullptr),
       m_basicCredentials(hostname, port, username, password),
       m_isConnected(false),
-      m_isTryingConnection(false),
       m_isSSL(false),
       m_connectionFailure(false),
       m_timeout(CONNECTION_TIMEOUT_SECONDS) {}
@@ -192,12 +191,11 @@ HARE_ERROR_E ConnectionBase::CloseChannel(int channel) {
   const std::lock_guard<std::mutex> lock(m_connMutex);
 
   if (false == m_isConnected) {
-    return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
+    return HARE_ERROR_E::UNABLE_TO_CLOSE_CHANNEL;
   }
 
   amqp_channel_close(m_conn, channel, AMQP_REPLY_SUCCESS);
 
-  // TODO this is always ALL_GOOD
   return retCode;
 }
 
@@ -226,8 +224,7 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
 
   if (errorVal < 0) {
     LOG(LOG_ERROR, amqp_error_string2(errorVal));
-    // TODO split the decodeReply function into two, and use the status check
-    // for this
+
     if (errorVal == AMQP_STATUS_SOCKET_ERROR) {
       retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
     } else {
@@ -337,7 +334,7 @@ HARE_ERROR_E ConnectionBase::decodeRpcReply(const amqp_rpc_reply_t& reply) {
 
 HARE_ERROR_E ConnectionBase::decodeLibraryException(
     const amqp_rpc_reply_t& reply) {
-  auto retCode = HARE_ERROR_E::ALL_GOOD;  // TODO not a good error to return
+  auto retCode = HARE_ERROR_E::ALL_GOOD;
   switch (reply.library_error) {
     case AMQP_STATUS_INCOMPATIBLE_AMQP_VERSION: {
       retCode = HARE_ERROR_E::INVALID_AMQP_VERSION;

@@ -264,6 +264,14 @@ class Producer {
   Producer(const Producer&) = delete;
 
   /**
+   * Used to see how many messages are still left to send, helpful if user wants to turn off
+   * producer cleanly without loss of messages.
+   * 
+   * @returns size of send queue.
+   */
+  int QueueSize() const;
+
+  /**
    * Destructor
    */
   ~Producer();

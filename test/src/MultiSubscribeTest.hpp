@@ -15,7 +15,7 @@ inline int testMultiSubscribe(const int totalMsg, ProducerConsumerTester& pubsub
         auto cur = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsedTime = cur - start;
         // Kill after 5 seconds, we should receive 5 messages by now
-        if (elapsedTime.count() > 5) 
+        if (elapsedTime.count() > 7) 
             return 0;
 
     }

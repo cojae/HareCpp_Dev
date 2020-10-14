@@ -170,7 +170,7 @@ void Consumer::thread() {
         }
         continue;
       } else {
-        // Sleep a configurable (TODO) amount of time to reduce spamming a
+        // Sleep a configurable amount of time to reduce spamming a
         // restarted broker. This does actually speed up the time to reconnect
         // by having a sleep
         std::this_thread::sleep_for(

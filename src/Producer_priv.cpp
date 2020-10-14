@@ -101,6 +101,7 @@ int Producer::addExchange(const std::string& exchange) {
     m_exchangeList[exchange] = ExchangeProperties();
     m_exchangeList[exchange].m_channel = m_curChannelNumber;
     m_channelsConnected = false;
+    selectedChannel = m_curChannelNumber;
     m_curChannelNumber++;
   } else {
     selectedChannel = m_exchangeList[exchange].m_channel;

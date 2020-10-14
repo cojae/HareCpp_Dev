@@ -42,7 +42,8 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
   }
 
   if (m_threadRunning) {
-    LOG(LOG_ERROR, "Thread Already Running, cannot subscribe TODO");
+    // TODO allow subscription to already running thread (?)
+    LOG(LOG_ERROR, "Thread Already Running, cannot subscribe");
     retCode = HARE_ERROR_E::THREAD_ALREADY_RUNNING;
   }
 

@@ -112,7 +112,6 @@ class ChannelHandler {
     }
   };
 
-  // TODO These need return codes
   // TODO user of this class must use make_pair, so maybe remove pair
 
   /**

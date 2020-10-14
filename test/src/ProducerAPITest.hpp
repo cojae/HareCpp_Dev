@@ -98,3 +98,29 @@ TEST(ProducerTest, restartAfterStart) {
   ASSERT_EQ(HareCpp::HARE_ERROR_E::ALL_GOOD, producer.Restart());
 }
 
+TEST(ProducerTest, queueSizeZero) {
+  HareCpp::Producer producer;
+  ASSERT_EQ(0, producer.QueueSize());
+}
+
+TEST(ProducerTest, queueSizeNotZero) {
+  HareCpp::Producer producer;
+  ASSERT_EQ(HareCpp::HARE_ERROR_E::ALL_GOOD, producer.Initialize(
+    SERVER, PORT, USERNAME, PASSWORD
+  ));
+  auto newMessage = HareCpp::Message("hello world");
+  producer.Send("amq.direct","test",newMessage) ;
+  ASSERT_EQ(1, producer.QueueSize());
+}
+
+TEST(ProducerTest, queueSizeTwo) {
+  HareCpp::Producer producer;
+  ASSERT_EQ(HareCpp::HARE_ERROR_E::ALL_GOOD, producer.Initialize(
+    SERVER, PORT, USERNAME, PASSWORD
+  ));
+  auto newMessage = HareCpp::Message("hello world");
+  producer.Send("amq.direct","test",newMessage) ;
+  producer.Send("amq.direct","test",newMessage) ;
+  ASSERT_EQ(2, producer.QueueSize());
+}
+

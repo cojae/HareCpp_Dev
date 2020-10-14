@@ -84,11 +84,6 @@ class ConnectionBase {
   bool m_isConnected;
 
   /**
-   * TODO: Is this still used? Can this be removed
-   */
-  bool m_isTryingConnection;
-
-  /**
    * Wether or not the SSL connection credentials have been set, and if we need
    * to be using SSL when establishing any new connections
    */
