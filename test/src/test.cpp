@@ -1,3 +1,4 @@
+#include "MessageTest.hpp"
 #include "ConsumerAPITest.hpp"
 #include "ConsumerSubscriptionTest.hpp"
 #include "ProducerAPITest.hpp"

@@ -29,23 +29,115 @@
 
 namespace HareCpp {
 
-Message::Message(std::string&& message) : m_message(std::move(message)) {
+Message::Message(std::string&& message)
+    : m_body{hare_cstring_bytes(message.c_str())} {
+  m_bodyHasBeenSet = true;
   m_properties._flags = 0;
 }
 
-Message::Message(const std::string& message) : m_message(message) {
+Message::Message(const std::string& message)
+    : m_body{hare_cstring_bytes(message.c_str())} {
+  m_bodyHasBeenSet = true;
   m_properties._flags = 0;
 }
 
 /**
  * Message created by receiving an envelope
  */
-Message::Message(const amqp_envelope_t& envelope)
-    : m_message(std::string(static_cast<char*>(envelope.message.body.bytes),
-                            envelope.message.body.len)),
-      m_properties(envelope.message.properties) {}
+Message::Message(const amqp_envelope_t& envelope) {
+  m_bodyHasBeenSet = true;
+  m_body = amqp_bytes_malloc_dup(envelope.message.body);
+  hare_basic_properties_malloc_dup(envelope.message.properties, m_properties);
+}
 
-const std::string* Message::payload() const { return &m_message; }
+Message::Message(const Message& copiedFrom) {
+  hare_basic_properties_malloc_dup(copiedFrom.m_properties, m_properties);
+  m_bodyHasBeenSet = copiedFrom.m_bodyHasBeenSet;
+  m_body = amqp_bytes_malloc_dup(copiedFrom.m_body);
+}
 
-unsigned int Message::Length() const { return m_message.size(); }
+std::string Message::String() const {
+  return (m_bodyHasBeenSet
+              ? std::string(static_cast<char*>(m_body.bytes), m_body.len)
+              : std::string(""));
+}
+
+const char* Message::Payload() const {
+  return (m_bodyHasBeenSet ? static_cast<char*>(m_body.bytes) : nullptr);
+}
+
+const amqp_bytes_t* Message::Bytes() const { return &m_body; }
+
+unsigned int Message::Length() const {
+  if (m_bodyHasBeenSet)
+    return m_body.len;
+  else
+    return 0;
+}
+
+void Message::SetReplyTo(const std::string& replyTo) {
+  m_properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
+  m_properties.reply_to = amqp_cstring_bytes(replyTo.c_str());
+}
+
+void Message::SetReplyTo(const char*& replyTo) {
+  m_properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
+  m_properties.reply_to = amqp_cstring_bytes(replyTo);
+}
+
+const std::string Message::ReplyTo() {
+  if (ReplyToIsSet()) {
+    return hare_bytes_to_string(m_properties.reply_to);
+  } else {
+    return "";
+  }
+}
+
+bool Message::ReplyToIsSet() const {
+  return (AMQP_BASIC_REPLY_TO_FLAG ==
+          (m_properties._flags & AMQP_BASIC_REPLY_TO_FLAG));
+}
+
+void Message::SetPayload(const char* payload) {
+  m_bodyHasBeenSet = true;
+  m_body = hare_cstring_bytes(payload);
+}
+
+void Message::SetPayload(void* payload, const int size) {
+  m_bodyHasBeenSet = true;
+  m_body = hare_void_bytes(payload, size);
+}
+
+bool Message::TimestampIsSet() const {
+  return (AMQP_BASIC_TIMESTAMP_FLAG ==
+          (m_properties._flags & AMQP_BASIC_TIMESTAMP_FLAG));
+}
+
+void Message::SetTimestamp(uint64_t timestamp) {
+  m_properties._flags |= AMQP_BASIC_TIMESTAMP_FLAG;
+  m_properties.timestamp = timestamp;
+}
+
+uint64_t Message::Timestamp() const {
+  uint64_t retVal = 0;
+  if (TimestampIsSet()) {
+    retVal = m_properties.timestamp;
+  }
+  return retVal;
+}
+void Message::SetCorrelationId(const char*& correlationId) {
+  m_properties._flags |= AMQP_BASIC_CORRELATION_ID_FLAG;
+  m_properties.correlation_id = amqp_cstring_bytes(correlationId);
+};
+
+void Message::SetCorrelationId(const std::string& correlationId) {
+  m_properties._flags |= AMQP_BASIC_CORRELATION_ID_FLAG;
+  m_properties.correlation_id = amqp_cstring_bytes(correlationId.c_str());
+};
+
+bool Message::HasCorrelationId() {
+  return (AMQP_BASIC_CORRELATION_ID_FLAG ==
+          (m_properties._flags & AMQP_BASIC_CORRELATION_ID_FLAG));
+}
+
 }  // namespace HareCpp

@@ -3,6 +3,7 @@
 #include "Constants.hpp"
 
 #include "gtest/gtest.h"
+#include "string.h"
 
 #ifndef PRODUCERCONSUMERTESTER
 #define PRODUCERCONSUMERTESTER
@@ -22,7 +23,8 @@ class ProducerConsumerTester : public ::testing::Test {
 
     void defaultCallback(const HareCpp::Message& message) {
       m_theMutex.lock();
-      if(*message.payload() == m_desiredMessage) m_desiredMessageCount++;
+      if(strcmp(message.Payload() , m_desiredMessage.c_str()) ||
+        (std::string(message.Payload()) == m_desiredMessage )) m_desiredMessageCount++;
       else m_undesiredMessageCount++;
       m_theMutex.unlock();
     };

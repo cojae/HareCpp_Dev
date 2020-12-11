@@ -1,5 +1,6 @@
 #include "Consumer.hpp"
 #include "gtest/gtest.h"
+#include <string.h>
 
 #ifndef CONSUMERTESTER
 #define CONSUMERTESTER
@@ -17,8 +18,12 @@ class ConsumerTester : public ::testing::Test {
 
     void defaultCallback(const HareCpp::Message& message) {
       m_theMutex.lock();
-      if(*message.payload() == m_desiredMessage) m_desiredMessageCount++;
-      else m_undesiredMessageCount++;
+      if( (strcmp(message.Payload() , m_desiredMessage.c_str())) ||
+        (std::string(message.Payload()) == m_desiredMessage )) m_desiredMessageCount++;
+      else {
+        m_undesiredMessageCount++;
+        printf("Failure: '%s' : '%s'\n",message.Payload(), m_desiredMessage.c_str());
+      }
       m_theMutex.unlock();
     };
 

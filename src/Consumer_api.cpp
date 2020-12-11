@@ -53,8 +53,8 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
 
     if (channel == -1) {
       char log[LOG_MAX_CHAR_SIZE];
-      snprintf(log,LOG_MAX_CHAR_SIZE,"Unable to subscribe to %s : %s", exchange.c_str(),
-              binding_key.c_str());
+      snprintf(log, LOG_MAX_CHAR_SIZE, "Unable to subscribe to %s : %s",
+               exchange.c_str(), binding_key.c_str());
       LOG(LOG_ERROR, log);
       retCode = HARE_ERROR_E::UNABLE_TO_SUBSCRIBE;
     } else {
@@ -67,7 +67,6 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
 }
 
 HARE_ERROR_E Consumer::Start() {
-  const std::lock_guard<std::mutex> threadLock(m_threadMutex);
   std::lock_guard<std::mutex> lock(m_consumerMutex);
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
@@ -84,10 +83,6 @@ HARE_ERROR_E Consumer::Start() {
   }
 
   if (noError(retCode)) {
-    m_exitThreadSignal = new std::promise<void>();
-
-    m_futureObj = m_exitThreadSignal->get_future();
-
     m_threadRunning = true;
 
     // Start up the consumer thread
@@ -100,39 +95,26 @@ HARE_ERROR_E Consumer::Start() {
 }
 
 HARE_ERROR_E Consumer::Stop() {
-  const std::lock_guard<std::mutex> threadLock(m_threadMutex);
-  m_consumerMutex.lock();
-
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
-  if (false == m_isInitialized) {
+  if (false == IsInitialized()) {
     LOG(LOG_ERROR, "Consumer not initialized");
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
   }
 
-  if (noError(retCode) && false == m_threadRunning) {
+  if (noError(retCode) && false == IsRunning()) {
     retCode = HARE_ERROR_E::THREAD_NOT_RUNNING;
   } else if (noError(retCode)) {
-    m_threadRunning = false;
-
     LOG(LOG_WARN, "Consumer thread stopping");
+    setRunning(false);
 
-    m_exitThreadSignal->set_value();
-    m_consumerMutex.unlock();  // So we can kill off the thread
     m_consumerThread.join();
-
-    delete m_exitThreadSignal;
 
     if (m_unboundChannelThreadRunning) {
       stopUnboundChannelThread();
     }
-
-    m_consumerMutex.lock();  // Regrab the lock, just in case
-
     retCode = m_connection->CloseConnection();
   }
-
-  m_consumerMutex.unlock();
 
   return retCode;
 }

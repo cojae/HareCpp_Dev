@@ -36,7 +36,7 @@ namespace HareCpp {
 
 #define LOG(a, b) LOG_FULL(a, b, __LINE__, __FILE__);
 
-constexpr int LOG_MAX_CHAR_SIZE {80};
+constexpr int LOG_MAX_CHAR_SIZE{80};
 
 enum HARE_LOG_E {
   LOG_FATAL = 0,

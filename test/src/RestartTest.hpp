@@ -59,7 +59,7 @@ TEST_F(ProducerConsumerTester, restartTest) {
 
   // Get everything set up, 2 exchanges need declared and set, while the consumer
   // is periodically restarting, might throw off the timing
-  std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   ASSERT_EQ(1, restartTestCheck(5,*this));
 

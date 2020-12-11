@@ -12,8 +12,3 @@ Creates a publisher that receives Send requests with an exchange, a routing key,
 
 # Consumer Class
 Creates a subscriber that allows the user to set a callback to a particular exchange/routing key combination.  Once a message is received of this type, the callback is called.  The callback being a `void callback_name(const HareCpp::Message& message)` function.
-
-# Messaging Note
-Currently the default message type is std::string under the assumption that protocolbuffers will be used, or a cast from string to another format.  This is not the best long term solution, however, and will eventually be made more agnostic.
-
-

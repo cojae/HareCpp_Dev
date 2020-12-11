@@ -93,10 +93,9 @@ class Consumer {
   std::shared_ptr<connection::ConnectionBase> m_connection;
 
   /**
-   * Mutexes used throughout the class
+   * Mutex used throughout the class
    */
   mutable std::mutex m_consumerMutex;
-  mutable std::mutex m_threadMutex;
 
   /**
    * bools to determine if the 2 main threads are already running
@@ -110,9 +109,6 @@ class Consumer {
    * our threads have access to member variables, the booleans above may be all
    * we need.  TODO
    */
-  std::promise<void>* m_exitThreadSignal;
-  std::future<void> m_futureObj;
-
   std::promise<void>* m_unboundChannelThreadSig;
   std::future<void> m_futureObjUnboundChannel;
 
@@ -214,6 +210,13 @@ class Consumer {
    */
   void startUnboundChannelThread();
 
+  /**
+   * setRunning used to set m_threadRunning using mutex
+   *
+   * @param [in] running (bool)
+   */
+  void setRunning(bool running);
+
  public:
   /**
    * Default constructor
@@ -222,7 +225,6 @@ class Consumer {
       : m_isInitialized(false),
         m_threadRunning(false),
         m_unboundChannelThreadRunning(false),
-        m_exitThreadSignal(nullptr),
         m_unboundChannelThreadSig(nullptr){};
 
   /**

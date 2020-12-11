@@ -29,18 +29,15 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
+#include "Utils.hpp"
 #include "pch.hpp"
 
 namespace HareCpp {
 
-// TODO this class may be completely tossed and replaced with
-// HelperStructs::RawMessage
 class Message {
  private:
-  /**
-   * AMQP Message as string
-   */
-  std::string m_message;
+  amqp_bytes_t m_body;
+  bool m_bodyHasBeenSet;
 
   amqp_basic_properties_t m_properties;
 
@@ -48,29 +45,44 @@ class Message {
   /**
    * Constructor declarations
    */
-  Message() { m_properties._flags = 0; };
-  Message(std::string&& message);
-  Message(const std::string& message);
-  Message(const amqp_envelope_t& envelope);
+  explicit Message() : m_bodyHasBeenSet{false} { m_properties._flags = 0; };
+  explicit Message(std::string&& message);
+  explicit Message(const std::string& message);
+  explicit Message(const amqp_envelope_t& envelope);
 
-  Message(const Message&) = default;
-
-  Message(Message&& original) : m_message(std::move(original.m_message)) {
-    // This is a pure copy.  Can potentially make this faster
-    m_properties = original.m_properties;
-    original.m_message = "";
-  };
+  /**
+   * Copy Constructor
+   *
+   * Needs the logic to do full copy of properties and message body.
+   */
+  Message(const Message& copiedFrom);
 
   Message& operator=(const Message&) = default;
 
-  amqp_basic_properties_t* getAmqpProperties() { return &m_properties; }
+  amqp_basic_properties_t* AmqpProperties() { return &m_properties; }
 
   /**
-   *  payload()
+   *  String()
    *
-   *  Returns message payload to std::string
+   *  Returns message payload to std::string as copy.  Will return a empty
+   * string if body has not been set
    */
-  const std::string* payload() const;
+  std::string String() const;
+
+  /**
+   * Payload()
+   *
+   * Returns a char* to the payload, or nullptr if body wasn't set
+   */
+  const char* Payload() const;
+
+  /**
+   * Bytes()
+   *
+   * Returns a pointer to the amqp_bytes_t used as the payload.
+   * This contains a len (length) and bytes (body) as void*
+   */
+  const amqp_bytes_t* Bytes() const;
 
   /**
    * Length()
@@ -89,64 +101,59 @@ class Message {
    */
   void setDeliveryMode(int deliveryMode);
 
-  amqp_bytes_t getAmqpBytes();
-
   /**
    * setReplyTo
    */
-  void setReplyTo(const std::string& replyTo) {
-    m_properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
-    m_properties.reply_to = amqp_cstring_bytes(replyTo.c_str());
-  };
+  void SetReplyTo(const std::string& replyTo);
 
-  void setReplyTo(const char*& replyTo) {
-    m_properties._flags |= AMQP_BASIC_REPLY_TO_FLAG;
-    m_properties.reply_to = amqp_cstring_bytes(replyTo);
-  };
+  void SetReplyTo(const char*& replyTo);
 
-  bool replyToIsSet() const {
-    return (AMQP_BASIC_REPLY_TO_FLAG ==
-            (m_properties._flags & AMQP_BASIC_REPLY_TO_FLAG));
-  };
+  const std::string ReplyTo();
 
-  bool timestampIsSet() const {
-    return (AMQP_BASIC_TIMESTAMP_FLAG ==
-            (m_properties._flags & AMQP_BASIC_TIMESTAMP_FLAG));
-  }
+  bool ReplyToIsSet() const;
+
+  /**
+   * SetPayload - using char*
+   *
+   * @param [in] payload: const char* of the payload.  Requires \0 at the end
+   * @return void
+   */
+  void SetPayload(const char* payload);
+
+  /**
+   * SetPayload - using void*
+   *
+   * @param [in] payload: void* of the payload
+   * @param [in] size: size of the string of bytes pointed to by the payload
+   * pointer
+   * @return void
+   */
+  void SetPayload(void* payload, const int size);
+
+  bool TimestampIsSet() const;
 
   /**
    * Assumed Microseconds
    */
-  void setTimestamp(uint64_t timestamp) {
-    m_properties._flags |= AMQP_BASIC_TIMESTAMP_FLAG;
-    m_properties.timestamp = timestamp;
-  }
+  void SetTimestamp(uint64_t timestamp);
 
-  uint64_t getTimestamp() const {
-    uint64_t retVal = 0;
-    if (timestampIsSet()) {
-      retVal = m_properties.timestamp;
-    }
-    return retVal;
-  }
+  uint64_t Timestamp() const;
 
   /**
    * setCorrelationId
    */
-  void setCorrelationId(const char*& correlationId) {
-    m_properties._flags |= AMQP_BASIC_CORRELATION_ID_FLAG;
-    m_properties.correlation_id = amqp_cstring_bytes(correlationId);
-  };
+  void SetCorrelationId(const char*& correlationId);
 
-  void setCorrelationId(const std::string& correlationId) {
-    m_properties._flags |= AMQP_BASIC_CORRELATION_ID_FLAG;
-    m_properties.correlation_id = amqp_cstring_bytes(correlationId.c_str());
-  };
+  void SetCorrelationId(const std::string& correlationId);
+
+  bool HasCorrelationId();
 
   /**
    *  Default Destructor
    */
-  ~Message(){};
+  ~Message() {
+    if (m_bodyHasBeenSet) free(m_body.bytes);
+  }
 };
 
 }  // Namespace HareCpp

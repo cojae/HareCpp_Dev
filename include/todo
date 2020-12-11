@@ -1,8 +1,0 @@
-Producer class should be able to store some of the properties for messages, 
-those propreties can be used to create a pre-defined Messages. 
-
-OR
-
-Producer class takes in its own properties and uses those to modify Messages before they are sent
-ReplyTo, etc, done through producer.  Possibly even correlation Id can be delt with by Producer
-

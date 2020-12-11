@@ -72,10 +72,9 @@ HARE_ERROR_E Producer::Send(const std::string& exchange,
                             Message& message) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
-  if (addExchange(exchange) < 0) 
-    retCode = HARE_ERROR_E::INVALID_PARAMETERS ;
+  if (addExchange(exchange) < 0)
+    retCode = HARE_ERROR_E::INVALID_PARAMETERS;
   else {
-
     const std::lock_guard<std::mutex> lock{m_producerMutex};
 
     auto builtMessage = std::make_shared<helper::RawMessage>();
@@ -84,9 +83,9 @@ HARE_ERROR_E Producer::Send(const std::string& exchange,
 
     builtMessage->routing_value = hare_cstring_bytes(routing_value.c_str());
 
-    builtMessage->properties = *message.getAmqpProperties();
+    builtMessage->properties = *message.AmqpProperties();
 
-    builtMessage->message = hare_cstring_bytes(message.payload()->c_str());
+    builtMessage->message = amqp_bytes_malloc_dup(*message.Bytes());
 
     builtMessage->channel = m_exchangeList[m_exchange].m_channel;
 
@@ -138,7 +137,7 @@ HARE_ERROR_E Producer::Stop() {
     LOG(LOG_ERROR, "Producer thread not running");
     retCode = HARE_ERROR_E::THREAD_NOT_RUNNING;
   } else if (noError(retCode)) {
-    m_threadRunning = false;
+    setRunning(false);
     LOG(LOG_WARN, "Producer thread stopping");
     m_exitThreadSignal->set_value();
     m_producerThread.join();
@@ -201,7 +200,6 @@ Producer::~Producer() {
   LOG(LOG_INFO, "Producer deconstructed");
 }
 
-
 void Producer::SetExchange(const std::string& exchange) {
   addExchange(exchange);
 }
@@ -235,6 +233,5 @@ bool Producer::IsInitialized() const {
   const std::lock_guard<std::mutex> lock{m_producerMutex};
   return m_isInitialized;
 }
-
 
 }  // Namespace HareCpp

@@ -10,7 +10,7 @@ inline int testSomeMessageReceives(const int totalMsg, ConsumerTester& consumerT
     while(consumerTest.GetDesiredMessageCount() < totalMsg) {
 
         if(consumerTest.GetUndesiredMessageCount() > 0)  
-            return 0; 
+            return -1; 
 
         // Send a message over with the producer
         auto newMessage = HareCpp::Message("hello world");

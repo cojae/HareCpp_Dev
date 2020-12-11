@@ -33,8 +33,6 @@
 
 namespace HareCpp {
 
-
-
 void Producer::thread() {
   while (m_futureObj.wait_for(std::chrono::milliseconds(0)) ==
          std::future_status::timeout) {
@@ -62,6 +60,10 @@ void Producer::thread() {
   }
 }
 
+void Producer::setRunning(bool running) {
+  const std::lock_guard<std::mutex> lock(m_producerMutex);
+  m_threadRunning = running;
+}
 
 int Producer::addExchange(const std::string& exchange,
                           const std::string& type) {
@@ -108,7 +110,6 @@ int Producer::addExchange(const std::string& exchange) {
   }
   return selectedChannel;
 }
-
 
 void Producer::clearActiveSendQueue() {
   while (false == m_sendQueue.empty()) {

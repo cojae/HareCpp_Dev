@@ -34,6 +34,11 @@
 
 namespace HareCpp {
 
+void Consumer::setRunning(bool running) {
+  const std::lock_guard<std::mutex> lock(m_consumerMutex);
+  m_threadRunning = running;
+}
+
 void Consumer::stopUnboundChannelThread() {
   if (m_unboundChannelThreadRunning) {
     LOG(LOG_WARN, "Unbound Channel Thread Stopping");
@@ -50,11 +55,12 @@ HARE_ERROR_E Consumer::openChannel(const int channel) {
   auto retCode = m_connection->OpenChannel(channel);
   if (noError(retCode)) {
     char log[LOG_MAX_CHAR_SIZE];
-    snprintf(log,LOG_MAX_CHAR_SIZE,"Successfully opened channel: %d", channel);
+    snprintf(log, LOG_MAX_CHAR_SIZE, "Successfully opened channel: %d",
+             channel);
     LOG(LOG_INFO, log);
   } else {
     char log[LOG_MAX_CHAR_SIZE];
-    snprintf(log,LOG_MAX_CHAR_SIZE,"Unable to open channel: %d", channel);
+    snprintf(log, LOG_MAX_CHAR_SIZE, "Unable to open channel: %d", channel);
     LOG(LOG_ERROR, log);
   }
   return retCode;
@@ -66,7 +72,8 @@ HARE_ERROR_E Consumer::declareQueue(const int channel,
       channel, m_channelHandler.GetQueueProperties(channel), queueName);
   if (noError(retCode)) {
     char log[LOG_MAX_CHAR_SIZE];
-    snprintf(log,LOG_MAX_CHAR_SIZE,"Created Queue: %s", hare_bytes_to_string(queueName).c_str());
+    snprintf(log, LOG_MAX_CHAR_SIZE, "Created Queue: %s",
+             hare_bytes_to_string(queueName).c_str());
     LOG(LOG_INFO, log);
 
     m_channelHandler.SetQueueName(channel, queueName);
@@ -77,9 +84,10 @@ HARE_ERROR_E Consumer::declareQueue(const int channel,
 HARE_ERROR_E Consumer::bindQueue(const int channel,
                                  const amqp_bytes_t& queueName) {
   char log[LOG_MAX_CHAR_SIZE];
-  snprintf(log,LOG_MAX_CHAR_SIZE,"Binding: %s %s %s %d", hare_bytes_to_string(queueName).c_str(),
-          m_channelHandler.GetExchange(channel).c_str(),
-          m_channelHandler.GetBindingKey(channel).c_str(), channel);
+  snprintf(log, LOG_MAX_CHAR_SIZE, "Binding: %s %s %s %d",
+           hare_bytes_to_string(queueName).c_str(),
+           m_channelHandler.GetExchange(channel).c_str(),
+           m_channelHandler.GetBindingKey(channel).c_str(), channel);
   LOG(LOG_DETAILED, log);
 
   auto retCode = m_connection->BindQueue(
@@ -99,7 +107,7 @@ HARE_ERROR_E Consumer::setupAndConsume(int channel) {
   amqp_bytes_t queueName;
 
   char log[LOG_MAX_CHAR_SIZE];
-  snprintf(log,LOG_MAX_CHAR_SIZE,"Registering channel: %d", channel);
+  snprintf(log, LOG_MAX_CHAR_SIZE, "Registering channel: %d", channel);
   LOG(LOG_DETAILED, log);
 
   if (false == m_connection->IsConnected()) {
@@ -154,9 +162,8 @@ void Consumer::startUnboundChannelThread() {
 }
 
 void Consumer::thread() {
-  while (m_futureObj.wait_for(std::chrono::milliseconds(0)) ==
-         std::future_status::timeout) {
-    if ((false == m_connection->IsConnected()) && m_threadRunning) {
+  while (IsRunning()) {
+    if (false == m_connection->IsConnected()) {
       auto retCode = m_connection->Connect();
       if (noError(retCode)) {
         retCode = startConsumption();
@@ -204,8 +211,8 @@ void Consumer::thread() {
 
       {
         char log[LOG_MAX_CHAR_SIZE];
-        snprintf(log,LOG_MAX_CHAR_SIZE,"Received message on %s : %s", exchange.c_str(),
-                bindingKey.c_str());
+        snprintf(log, LOG_MAX_CHAR_SIZE, "Received message on %s : %s",
+                 exchange.c_str(), bindingKey.c_str());
         LOG(LOG_DETAILED, log);
       }
 

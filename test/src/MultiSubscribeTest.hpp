@@ -14,7 +14,7 @@ inline int testMultiSubscribe(const int totalMsg, ProducerConsumerTester& pubsub
 
         auto cur = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsedTime = cur - start;
-        // Kill after 5 seconds, we should receive 5 messages by now
+        // Kill after 7 seconds, we should receive 5 messages by now
         if (elapsedTime.count() > 7) 
             return 0;
 
@@ -57,7 +57,7 @@ TEST_F(ProducerConsumerTester, multiSubscribeTest) {
 
   // Get everything set up, 2 exchanges need declared and set, while the consumer
   // is periodically restarting, might throw off the timing
-  std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   ASSERT_EQ(1, testMultiSubscribe(5,*this));
 

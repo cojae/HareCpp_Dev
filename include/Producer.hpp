@@ -163,6 +163,15 @@ class Producer {
 
   bool channelsConnected() const;
 
+  /**
+   *  setRunning
+   *
+   *  Allows mutex protected access to set m_threadRunning
+   *
+   *  @param [in] running (bool)
+   */
+  void setRunning(bool running);
+
   mutable std::mutex m_producerMutex;
 
   std::thread m_producerThread;
@@ -259,14 +268,14 @@ class Producer {
                           const std::string& password = "guest");
 
   /**
-   * Copy Constructor
+   * No Copy Constructor
    */
   Producer(const Producer&) = delete;
 
   /**
-   * Used to see how many messages are still left to send, helpful if user wants to turn off
-   * producer cleanly without loss of messages.
-   * 
+   * Used to see how many messages are still left to send, helpful if user wants
+   * to turn off producer cleanly without loss of messages.
+   *
    * @returns size of send queue.
    */
   int QueueSize() const;

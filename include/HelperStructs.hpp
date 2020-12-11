@@ -43,8 +43,6 @@ struct queueProperties {
   int m_autoDelete;
 };
 
-// TODO instead of this AND Message class, try and find a middleground between
-// the two Redundant stuff is annoying. This is redundant
 struct RawMessage {
   amqp_bytes_t exchange;
   int channel;

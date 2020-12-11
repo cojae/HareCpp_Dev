@@ -274,7 +274,8 @@ HARE_ERROR_E ConnectionBase::DeclareQueue(
       retQueue = amqp_bytes_malloc_dup(r->queue);
     } else {
       char log[LOG_MAX_CHAR_SIZE];
-      snprintf(log,LOG_MAX_CHAR_SIZE,"Failed to declare queue on Channel: %d", channel);
+      snprintf(log, LOG_MAX_CHAR_SIZE, "Failed to declare queue on Channel: %d",
+               channel);
       LOG(LOG_ERROR, log);
     }
     if (retQueue.bytes == NULL) {

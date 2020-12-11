@@ -30,30 +30,31 @@
 namespace HareCpp {
 
 ChannelHandler::ChannelHandler()
-    : m_nextAvailableChannel(1), m_multiThreaded(true) {}
+    : m_nextAvailableChannel(1), m_multiThreaded(false) {}
 
 int ChannelHandler::AddChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair,
     TD_Callback& callback) {
-  auto retCode { -1 };
+  auto retCode{-1};
   std::lock_guard<std::mutex> lock(m_handlerMutex);
   // Check that we don't already have it
 
-  auto it { m_bindingPairLookup.find(bindingPair) };
+  auto it{m_bindingPairLookup.find(bindingPair)};
 
   if (it != m_bindingPairLookup.end()) {
     char log[LOG_MAX_CHAR_SIZE];
     // TODO sprintf is not safe, please fix all calls
-    snprintf(log, LOG_MAX_CHAR_SIZE, "%s : %s already exists, updating callback",
-            bindingPair.first.c_str(), bindingPair.second.c_str());
+    snprintf(log, LOG_MAX_CHAR_SIZE,
+             "%s : %s already exists, updating callback",
+             bindingPair.first.c_str(), bindingPair.second.c_str());
     LOG(LOG_WARN, log);
     // Set new callback
     it->second->m_callback = callback;
   } else /* New Pairing */
   {
     char log[LOG_MAX_CHAR_SIZE];
-    snprintf(log,LOG_MAX_CHAR_SIZE,"%s : %s doesn't exist, creating in map",
-            bindingPair.first.c_str(), bindingPair.second.c_str());
+    snprintf(log, LOG_MAX_CHAR_SIZE, "%s : %s doesn't exist, creating in map",
+             bindingPair.first.c_str(), bindingPair.second.c_str());
     LOG(LOG_DETAILED, log);
 
     /**
@@ -79,7 +80,7 @@ int ChannelHandler::AddChannelProcessor(
 
 int ChannelHandler::RemoveChannelProcessor(
     const std::pair<std::string, std::string>& bindingPair) {
-  auto it { m_bindingPairLookup.find(bindingPair) };
+  auto it{m_bindingPairLookup.find(bindingPair)};
   if (it != m_bindingPairLookup.end()) {
     m_channelLookup.erase(*it->second->m_channel);
     m_bindingPairLookup.erase(it);
@@ -98,13 +99,17 @@ void ChannelHandler::Process(
     const std::pair<std::string, std::string>& bindingPair,
     const Message& message) {
   std::lock_guard<std::mutex> lock(m_handlerMutex);
-  auto it { m_bindingPairLookup.find(bindingPair)};
-  if (it == m_bindingPairLookup.end()) {
+  auto it{m_bindingPairLookup.find(bindingPair)};
+  if (it == m_bindingPairLookup.end() || it->second == nullptr) {
     return;  // Error
   }
 
   if (m_multiThreaded) {
-    std::thread([message, it] { it->second->m_callback(message); }).detach();
+    // This makes a copy of the function, in order to avoid race condition
+    // as m_handlerMutex doesn't follow to this thread
+    std::thread callbackThread([message](TD_Callback func) { func(message); },
+                               it->second->m_callback);
+    callbackThread.detach();
   } else {
     it->second->m_callback(message);
   }
