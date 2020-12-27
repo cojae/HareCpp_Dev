@@ -189,6 +189,33 @@ class Consumer {
   HARE_ERROR_E consume(const int channel, const amqp_bytes_t& queueName);
 
   /**
+   * Connect to the broker and starts consumption on all queues it can bind to.
+   * Any queues unable to create or bind (possibly due to exchange not being
+   * created yet), will be put on unbound channel thread (see
+   * startConsumption()).
+   *
+   * If a server failure is encountered (possibly due to broker not being set up
+   * yet), a sleep will happen.  This is to stop the broker from being flooded
+   * with requests during its startup, which will speed up it being up and
+   * running and allowing connection. Believe it or not, this sleep does improve
+   * time to reestablish a connection.
+   *
+   * @returns HARE_ERROR_E : results of the connect and consumption
+   *
+   */
+  HARE_ERROR_E connectAndStartConsumption();
+
+  /**
+   * pullNextMessage consumes/pulls the next message on the list from all queues
+   * we are bound to and subscribing to. It will then use the channelHandler to
+   * process the message, calling the callback function assigned to that
+   * exchange/route.
+   *
+   * @returns void
+   */
+  void pullNextMessage();
+
+  /**
    * Queue of unbound channels that need to be retried in the
    * unboundChannelThread.  They will continue to go in and out of the queue
    * until everything has been successfully connected to the broker.  This

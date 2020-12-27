@@ -51,6 +51,19 @@ struct RawMessage {
   amqp_bytes_t message;
 };
 
+/**
+ * Frees memory for struct RawMessage.  It is risky because it does not check that the memory CAN be freed before freeing.
+ * Another function should be created, or this one cleaned up to remove this issue.
+ * 
+ * @param [in] message : RawMessage reference, to be freed.
+ * @returns void
+ */
+inline void hare_free_message_risky(RawMessage& rawMessage) {
+  amqp_bytes_free(rawMessage.message);
+  amqp_bytes_free(rawMessage.routing_value);
+  amqp_bytes_free(rawMessage.exchange);
+};
+
 struct loginCredentials {
   loginCredentials(const std::string& hostname, int port,
                    const std::string& username, const std::string& password)

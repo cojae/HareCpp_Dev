@@ -34,13 +34,8 @@
 namespace HareCpp {
 
 void Producer::thread() {
-  while (m_futureObj.wait_for(std::chrono::milliseconds(0)) ==
-         std::future_status::timeout) {
-    if (false == IsRunning()) {
-      return;
-    }
-
-    if (false == m_connection->IsConnected()) {
+  while (IsRunning()) {
+    if (false == isConnected()) {
       auto retCode = m_connection->Connect();
       if (false == noError(retCode)) {
         // Sleep a TODO configurable amount of time
@@ -52,7 +47,6 @@ void Producer::thread() {
 
     // Declare exchanges if not been declared
     if (false == channelsConnected()) {
-      if (false == IsRunning()) continue;
       connectChannels();
     }
 
@@ -68,8 +62,6 @@ void Producer::setRunning(bool running) {
 int Producer::addExchange(const std::string& exchange,
                           const std::string& type) {
   const std::lock_guard<std::mutex> lock(m_producerMutex);
-
-  m_exchange = exchange;
 
   int selectedChannel = -1;
 
@@ -94,9 +86,6 @@ int Producer::addExchange(const std::string& exchange,
 int Producer::addExchange(const std::string& exchange) {
   const std::lock_guard<std::mutex> lock(m_producerMutex);
 
-  // Default is to use the last used/created exchange
-  m_exchange = exchange;
-
   int selectedChannel = -1;
 
   if (m_exchangeList.find(exchange) == m_exchangeList.end()) {
@@ -113,9 +102,7 @@ int Producer::addExchange(const std::string& exchange) {
 
 void Producer::clearActiveSendQueue() {
   while (false == m_sendQueue.empty()) {
-    amqp_bytes_free(m_sendQueue.front()->message);
-    amqp_bytes_free(m_sendQueue.front()->routing_value);
-    amqp_bytes_free(m_sendQueue.front()->exchange);
+    hare_free_message_risky(*m_sendQueue.front());
     m_sendQueue.pop();
   }
 }
@@ -134,7 +121,7 @@ void Producer::closeConnection() {
 void Producer::connectChannels() {
   bool allGood{true};
 
-  if (false == m_connection->IsConnected()) return;
+  if (false == isConnected() || false == IsRunning()) return;
 
   m_producerMutex.lock();
   for (auto it : m_exchangeList) {
@@ -174,27 +161,32 @@ void Producer::connectChannels() {
 }
 
 void Producer::publishNextInQueue() {
-  m_producerMutex.lock();
-
-  if (false == m_connection->IsConnected()) return;
+  if (false == isConnected()) return;
 
   if (m_sendQueue.size() != 0) {
     auto retCode = m_connection->PublishMessage(*m_sendQueue.front());
     if (serverFailure(retCode)) {
-      m_producerMutex.unlock();
       closeConnection();
       return;
     }
 
+    // If sent, pop it off the queue
     if (noError(retCode)) {
-      amqp_bytes_free(m_sendQueue.front()->message);
-      amqp_bytes_free(m_sendQueue.front()->routing_value);
-      amqp_bytes_free(m_sendQueue.front()->exchange);
+      const std::lock_guard<std::mutex> lock{m_producerMutex};
+      hare_free_message_risky(*m_sendQueue.front());
       m_sendQueue.pop();
     }
   }
+}
 
-  m_producerMutex.unlock();
+bool Producer::isConnected() const {
+  const std::lock_guard<std::mutex> lock{m_producerMutex};
+  return (m_connection == nullptr ? false : m_connection->IsConnected());
+}
+
+void Producer::setInitialized(bool initialized) {
+  const std::lock_guard<std::mutex> lock{m_producerMutex};
+  m_isInitialized = initialized;
 }
 
 }  // Namespace HareCpp

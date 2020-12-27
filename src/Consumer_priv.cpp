@@ -142,6 +142,7 @@ HARE_ERROR_E Consumer::startConsumption() {
       return retCode;
     }
   }
+  // Start up thread to retry all connections that couldn't be established
   if (m_unboundChannels.size() != 0) {
     startUnboundChannelThread();
   } else {
@@ -162,74 +163,84 @@ void Consumer::startUnboundChannelThread() {
 }
 
 void Consumer::thread() {
+  HARE_ERROR_E retCode;
   while (IsRunning()) {
+    retCode = HARE_ERROR_E::ALL_GOOD;
     if (false == m_connection->IsConnected()) {
-      auto retCode = m_connection->Connect();
-      if (noError(retCode)) {
-        retCode = startConsumption();
-        if (serverFailure(retCode)) {
-          if (m_unboundChannelThreadRunning) {
-            stopUnboundChannelThread();
-          }
-
-          m_connection->CloseConnection();
-          return;
-        }
-        continue;
-      } else {
-        // Sleep a configurable amount of time to reduce spamming a
-        // restarted broker. This does actually speed up the time to reconnect
-        // by having a sleep
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(CONNECTION_RETRY_TIMEOUT_MILLISECONDS));
-        continue;
-      }
+      retCode = connectAndStartConsumption();
     }
+    if (noError(retCode)) pullNextMessage();
+  }
+}
 
-    if (m_connection->IsConnected())
-      amqp_maybe_release_buffers(m_connection->Connection());
-
-    amqp_envelope_t envelope;
-
-    auto ret = m_connection->ConsumeMessage(envelope);
-
-    if (noError(ret)) {
-      Message newMessage(envelope);
-
-      // envelope was received but malformed
-      if (envelope.exchange.len == 0) {
-        amqp_destroy_envelope(&envelope);
-        continue;
-      }
-
-      auto exchange = std::string(static_cast<char*>(envelope.exchange.bytes),
-                                  envelope.exchange.len);
-
-      auto bindingKey =
-          std::string(static_cast<char*>(envelope.routing_key.bytes),
-                      envelope.routing_key.len);
-
-      {
-        char log[LOG_MAX_CHAR_SIZE];
-        snprintf(log, LOG_MAX_CHAR_SIZE, "Received message on %s : %s",
-                 exchange.c_str(), bindingKey.c_str());
-        LOG(LOG_DETAILED, log);
-      }
-
-      m_channelHandler.Process(std::make_pair(exchange, bindingKey),
-                               newMessage);
-
-      amqp_destroy_envelope(&envelope);
-
-    } else if (serverFailure(ret) && m_threadRunning) {
-      LOG(LOG_FATAL, "Restarting Consumer due to server error");
+HARE_ERROR_E Consumer::connectAndStartConsumption() {
+  auto retCode = m_connection->Connect();
+  if (noError(retCode)) {
+    retCode = startConsumption();
+    if (serverFailure(retCode)) {
+      // stop the unbound channel thread that might have started in
+      // startConsumption()
       if (m_unboundChannelThreadRunning) {
         stopUnboundChannelThread();
       }
 
       m_connection->CloseConnection();
+    }
+  } else {
+    // Sleep a configurable amount of time to reduce spamming a
+    // restarted broker. This does actually speed up the time to reconnect
+    // by having a sleep
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(CONNECTION_RETRY_TIMEOUT_MILLISECONDS));
+  }
+  return retCode;
+}
+
+void Consumer::pullNextMessage() {
+  if (m_connection->IsConnected())
+    amqp_maybe_release_buffers(m_connection->Connection());
+  else
+    return;
+
+  amqp_envelope_t envelope;
+
+  auto ret = m_connection->ConsumeMessage(envelope);
+
+  if (noError(ret)) {
+    Message newMessage(envelope);
+
+    // envelope was received but malformed
+    if (envelope.exchange.len == 0) {
+      amqp_destroy_envelope(&envelope);
       return;
     }
+
+    auto exchange = std::string(static_cast<char*>(envelope.exchange.bytes),
+                                envelope.exchange.len);
+
+    auto bindingKey =
+        std::string(static_cast<char*>(envelope.routing_key.bytes),
+                    envelope.routing_key.len);
+
+    {
+      char log[LOG_MAX_CHAR_SIZE];
+      snprintf(log, LOG_MAX_CHAR_SIZE, "Received message on %s : %s",
+               exchange.c_str(), bindingKey.c_str());
+      LOG(LOG_DETAILED, log);
+    }
+
+    m_channelHandler.Process(std::make_pair(exchange, bindingKey), newMessage);
+
+    amqp_destroy_envelope(&envelope);
+
+  } else if (serverFailure(ret) && IsRunning()) {
+    LOG(LOG_FATAL, "Restarting Consumer due to server error");
+    if (m_unboundChannelThreadRunning) {
+      stopUnboundChannelThread();
+    }
+
+    m_connection->CloseConnection();
+    return;
   }
 }
 

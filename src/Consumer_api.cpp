@@ -33,21 +33,22 @@ namespace HareCpp {
 HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
                                  const std::string& binding_key, TD_Callback f,
                                  helper::queueProperties queueProps) {
-  std::lock_guard<std::mutex> lock(m_consumerMutex);
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
-  if (false == m_isInitialized) {
+  if (false == IsInitialized()) {
     LOG(LOG_FATAL, "Consumer Not Initialized");
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
   }
 
-  if (m_threadRunning) {
+  if (IsRunning()) {
     // TODO allow subscription to already running thread (?)
     LOG(LOG_ERROR, "Thread Already Running, cannot subscribe");
     retCode = HARE_ERROR_E::THREAD_ALREADY_RUNNING;
   }
 
   if (noError(retCode)) {
+    std::lock_guard<std::mutex> lock(m_consumerMutex);
+
     auto channel = m_channelHandler.AddChannelProcessor(
         std::make_pair(exchange, binding_key), f);
 
@@ -57,7 +58,6 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
                exchange.c_str(), binding_key.c_str());
       LOG(LOG_ERROR, log);
       retCode = HARE_ERROR_E::UNABLE_TO_SUBSCRIBE;
-    } else {
     }
     if (noError(retCode)) {
       m_channelHandler.SetQueueProperties(channel, queueProps);
@@ -75,9 +75,7 @@ HARE_ERROR_E Consumer::Start() {
   if (false == m_isInitialized) {
     LOG(LOG_ERROR, "Consumer not Initialized");
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
-  }
-
-  if (noError(retCode) && m_threadRunning) {
+  } else if (m_threadRunning) {
     LOG(LOG_WARN, "Thread already running");
     retCode = HARE_ERROR_E::THREAD_ALREADY_RUNNING;
   }
@@ -100,12 +98,11 @@ HARE_ERROR_E Consumer::Stop() {
   if (false == IsInitialized()) {
     LOG(LOG_ERROR, "Consumer not initialized");
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
-  }
-
-  if (noError(retCode) && false == IsRunning()) {
+  } else if (false == IsRunning()) {
     retCode = HARE_ERROR_E::THREAD_NOT_RUNNING;
-  } else if (noError(retCode)) {
+  } else {
     LOG(LOG_WARN, "Consumer thread stopping");
+
     setRunning(false);
 
     m_consumerThread.join();

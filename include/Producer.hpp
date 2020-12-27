@@ -125,25 +125,17 @@ class Producer {
   std::shared_ptr<connection::ConnectionBase> m_connection;
 
   /**
-   * Last used exchange (TODO may be removed).  This is so that, in case you
-   * only use one exchange, you can set it up and then send on simply the
-   * routing key only. Though, lets be real, this is just weird and makes
-   * following the class a little harder. So probably will be removed.
-   */
-  std::string m_exchange;
-
-  /**
    * Stateful variables
    */
   bool m_isInitialized;
   bool m_threadRunning;
   bool m_channelsConnected;
-  int m_curChannelNumber;
 
-  // TODO i use future/promise for thread control, but i'm starting to think
-  // thats not appropriate
-  std::promise<void>* m_exitThreadSignal;
-  std::future<void> m_futureObj;
+  /**
+   * Keeps track of current channel number to use when making a new one.  It
+   * will increment with every new channel created.
+   */
+  int m_curChannelNumber;
 
   void thread();
 
@@ -164,6 +156,13 @@ class Producer {
   bool channelsConnected() const;
 
   /**
+   * Checks whether or not we are connected to broker, via use of m_connection.
+   * 
+   * @returns bool : true or false for connection state
+   */
+  bool isConnected() const;
+
+  /**
    *  setRunning
    *
    *  Allows mutex protected access to set m_threadRunning
@@ -171,6 +170,15 @@ class Producer {
    *  @param [in] running (bool)
    */
   void setRunning(bool running);
+
+  /**
+   *  setInitialized
+   *
+   *  Allows mutex protected access to set m_isInitialized
+   *
+   *  @param [in] initialized (bool)
+   */
+  void setInitialized(bool initialized);
 
   mutable std::mutex m_producerMutex;
 
@@ -180,29 +188,10 @@ class Producer {
 
  public:
   Producer()
-      : m_exchange(""),
-        m_isInitialized(false),
+      : m_isInitialized(false),
         m_threadRunning(false),
         m_channelsConnected(false),
-        m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr){};
-
-  // Constructors with exchanges defined, may be thrown out TODO
-  explicit Producer(std::string&& exchange)
-      : m_exchange(std::move(exchange)),
-        m_isInitialized(false),
-        m_threadRunning(false),
-        m_channelsConnected(false),
-        m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr){};
-
-  explicit Producer(const std::string& exchange)
-      : m_exchange(exchange),
-        m_isInitialized(false),
-        m_threadRunning(false),
-        m_channelsConnected(false),
-        m_curChannelNumber(1),
-        m_exitThreadSignal(nullptr){};
+        m_curChannelNumber(1){};
 
   /**
    * Sends a message given the routing key.  This uses the last used exchange as
@@ -239,17 +228,6 @@ class Producer {
   HARE_ERROR_E Send(const std::string& exchange,
                     const std::string& routing_value, Message& message);
 
-  /**
-   *  Sets the default used exchange for sending messages, this is also set when
-   * a Send call is made with the exchange as a parameter. Again, this may be
-   * removed in future iterations as it doesn't seem very necessary and instead
-   * adds to complexity and confusion of maintanence.
-   *
-   * @param [in] exchange : the rabbitmq exchange to be made default
-   *
-   * @returns void
-   */
-  void SetExchange(const std::string& exchange);
 
   HARE_ERROR_E DeclareExchange(const std::string& exchange,
                                const std::string& type = "direct");
