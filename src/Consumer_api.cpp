@@ -40,15 +40,9 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
   }
 
-  if (IsRunning()) {
-    // TODO allow subscription to already running thread (?)
-    LOG(LOG_ERROR, "Thread Already Running, cannot subscribe");
-    retCode = HARE_ERROR_E::THREAD_ALREADY_RUNNING;
-  }
-
   if (noError(retCode)) {
-    std::lock_guard<std::mutex> lock(m_consumerMutex);
-
+    // TODO Verify that m_channelHandler is doing proper mutex protecting in
+    // these calls
     auto channel = m_channelHandler.AddChannelProcessor(
         std::make_pair(exchange, binding_key), f);
 
@@ -61,6 +55,11 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
     }
     if (noError(retCode)) {
       m_channelHandler.SetQueueProperties(channel, queueProps);
+
+      // If already running, put into pendingChannels queue, to be started up
+      if (IsRunning()) {
+        pushIntoPendingChannels(channel);
+      }
     }
   }
   return retCode;
@@ -94,6 +93,7 @@ HARE_ERROR_E Consumer::Start() {
 
 HARE_ERROR_E Consumer::Stop() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
+  emptyPendingChannels();
 
   if (false == IsInitialized()) {
     LOG(LOG_ERROR, "Consumer not initialized");
@@ -107,9 +107,6 @@ HARE_ERROR_E Consumer::Stop() {
 
     m_consumerThread.join();
 
-    if (m_unboundChannelThreadRunning) {
-      stopUnboundChannelThread();
-    }
     retCode = m_connection->CloseConnection();
   }
 
@@ -129,7 +126,6 @@ HARE_ERROR_E Consumer::Initialize(const std::string& server, int port,
   if (noError(retCode)) {
     m_isInitialized = true;
     m_threadRunning = false;
-    m_unboundChannelThreadRunning = false;
     LOG(LOG_INFO, "Consumer Initialized Successfully")
   }
   return retCode;

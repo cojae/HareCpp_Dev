@@ -157,7 +157,7 @@ class Producer {
 
   /**
    * Checks whether or not we are connected to broker, via use of m_connection.
-   * 
+   *
    * @returns bool : true or false for connection state
    */
   bool isConnected() const;
@@ -227,7 +227,6 @@ class Producer {
    */
   HARE_ERROR_E Send(const std::string& exchange,
                     const std::string& routing_value, Message& message);
-
 
   HARE_ERROR_E DeclareExchange(const std::string& exchange,
                                const std::string& type = "direct");

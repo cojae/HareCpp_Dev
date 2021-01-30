@@ -32,6 +32,8 @@
 #include "HelperStructs.hpp"
 #include "pch.hpp"
 
+#include <atomic>
+
 namespace HareCpp {
 namespace connection {
 /**
@@ -81,7 +83,7 @@ class ConnectionBase {
    * This will be returned for IsConnected() calls and as a double check before
    * using an existing connection that may be inactive/broken
    */
-  bool m_isConnected;
+  std::atomic<bool> m_isConnected;
 
   /**
    * Wether or not the SSL connection credentials have been set, and if we need
@@ -144,7 +146,9 @@ class ConnectionBase {
    *
    * @returns m_isConnected boolean (true=connected,false=not connected)
    */
-  bool IsConnected();
+  bool IsConnected() const;
+
+  void setConnected(bool connect);
 
   /**
    * Create the timeout time used when calling amqp functions that allow a

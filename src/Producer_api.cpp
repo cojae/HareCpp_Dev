@@ -92,7 +92,7 @@ HARE_ERROR_E Producer::Stop() {
   if (false == IsInitialized()) {
     LOG(LOG_ERROR, "Producer not initialized");
     retCode = HARE_ERROR_E::NOT_INITIALIZED;
-  }else if (false == IsRunning()) {
+  } else if (false == IsRunning()) {
     LOG(LOG_ERROR, "Producer thread not running");
     retCode = HARE_ERROR_E::THREAD_NOT_RUNNING;
   } else {
@@ -138,7 +138,8 @@ HARE_ERROR_E Producer::Initialize(const std::string& server, int port,
 Producer::~Producer() {
   if (IsInitialized()) {
     if (IsRunning()) Stop();
-    // Close each channel, not entirely necessary with the CloseConnection() call, however its safe.
+    // Close each channel, not entirely necessary with the CloseConnection()
+    // call, however its safe.
     for (std::pair<std::string, ExchangeProperties> element : m_exchangeList) {
       m_connection->CloseChannel(element.second.m_channel);
       element.second.m_connected = false;
@@ -152,7 +153,8 @@ Producer::~Producer() {
 HARE_ERROR_E Producer::DeclareExchange(const std::string& exchange,
                                        const std::string& type) {
   auto channel = addExchange(exchange, type);
-  return (channel != -1 ? HARE_ERROR_E::ALL_GOOD : HARE_ERROR_E::INVALID_PARAMETERS);
+  return (channel != -1 ? HARE_ERROR_E::ALL_GOOD
+                        : HARE_ERROR_E::INVALID_PARAMETERS);
 }
 
 HARE_ERROR_E Producer::Restart() {

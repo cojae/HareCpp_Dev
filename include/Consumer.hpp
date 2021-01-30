@@ -101,16 +101,6 @@ class Consumer {
    * bools to determine if the 2 main threads are already running
    */
   bool m_threadRunning;
-  bool m_unboundChannelThreadRunning;
-
-  /**
-   * Trying out c++11 techniques, this may be redundant as i think its main
-   * appeal is for accessing threads that are detached from the class. Because
-   * our threads have access to member variables, the booleans above may be all
-   * we need.  TODO
-   */
-  std::promise<void>* m_unboundChannelThreadSig;
-  std::future<void> m_futureObjUnboundChannel;
 
   /**
    * Start up all channels and start consuming on them.  This method uses
@@ -124,17 +114,12 @@ class Consumer {
    * Two main threads that could run through the lifetime of Consumer
    */
   void thread();
-  void unboundChannelThread();
   std::thread m_consumerThread;
-  std::thread m_unboundChannelThread;
 
   /**
    *  Binds and consumes a queue/exchange
    *  If a channel exception is received, the channel is added to
-   *  m_unboundChannels queue to be periodically tried again
-   *
-   *  NOTE: does not use a mutex, as it is assumed the caller method will hold
-   * the lock.  This is not thread safe!
+   *  m_pendingChannels queue to be periodically tried again
    *
    * @param [in] channel : the channel to establish to the broker
    *
@@ -191,7 +176,7 @@ class Consumer {
   /**
    * Connect to the broker and starts consumption on all queues it can bind to.
    * Any queues unable to create or bind (possibly due to exchange not being
-   * created yet), will be put on unbound channel thread (see
+   * created yet), will be put on channel connection thread (see
    * startConsumption()).
    *
    * If a server failure is encountered (possibly due to broker not being set up
@@ -216,26 +201,38 @@ class Consumer {
   void pullNextMessage();
 
   /**
-   * Queue of unbound channels that need to be retried in the
-   * unboundChannelThread.  They will continue to go in and out of the queue
+   * Queue of pending channels that need to be retried in the
+   * main consumption thread.  They will continue to go in and out of the queue
    * until everything has been successfully connected to the broker.  This
-   * exists, along with the thread, as a means to make sure that we don't lose
+   * exists as a means to make sure that we don't lose
    * connection if an exchange hasn't been declared.
    */
-  std::queue<int> m_unboundChannels;
+  std::queue<int> m_pendingChannels;
 
   /**
-   * Similar to Stop() call, except created to kill off the
-   * unboundChannelThread.  Though this may be redundant. TODO
+   * Mutex needed to protect the pending channel queue
    */
-  void stopUnboundChannelThread();
+  mutable std::mutex m_pendingChannelMutex;
 
   /**
-   * Similar to Start() call, except created to start up the
-   * unboundChannelThread. This thread runs and retries all channels/queues that
-   * are not being subscribed on
+   * Get the size of m_pendingChannels safely (using m_pendingChannelMutex)
    */
-  void startUnboundChannelThread();
+  int pendingChannelSize() const;
+
+  /**
+   * Pop off the next pending channel for processing
+   */
+  int popNextPendingChannel();
+
+  /**
+   * Add a channel into the pending channel queue
+   */
+  void pushIntoPendingChannels(const int channel);
+
+  /**
+   * Empties the queue of pending channels
+   */
+  void emptyPendingChannels();
 
   /**
    * setRunning used to set m_threadRunning using mutex
@@ -248,11 +245,7 @@ class Consumer {
   /**
    * Default constructor
    */
-  Consumer()
-      : m_isInitialized(false),
-        m_threadRunning(false),
-        m_unboundChannelThreadRunning(false),
-        m_unboundChannelThreadSig(nullptr){};
+  Consumer() : m_isInitialized(false), m_threadRunning(false){};
 
   /**
    * Start() and Stop() the main consumer thread

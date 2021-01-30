@@ -140,7 +140,6 @@ void Producer::connectChannels() {
       if (it.second.m_isDeclare) {
         retCode = m_connection->DeclareExchange(it.second.m_channel, it.first,
                                                 it.second.m_type);
-        // TODO IF Error, reset channel (maybe remove from exchange list)
         if (serverFailure(retCode)) {
           m_producerMutex.unlock();
           closeConnection();

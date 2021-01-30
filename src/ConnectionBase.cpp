@@ -30,9 +30,12 @@
 namespace HareCpp {
 namespace connection {
 
-bool ConnectionBase::IsConnected() {
-  const std::lock_guard<std::mutex> lock(m_connMutex);
-  return m_isConnected;
+bool ConnectionBase::IsConnected() const {
+  return m_isConnected.load(std::memory_order_relaxed);
+}
+
+void ConnectionBase::setConnected(bool connect) {
+  m_isConnected.store(connect, std::memory_order_relaxed);
 }
 
 HARE_ERROR_E ConnectionBase::login() {
@@ -66,8 +69,8 @@ ConnectionBase::ConnectionBase(const std::string& hostname, int port,
 
 HARE_ERROR_E ConnectionBase::CloseConnection() {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  const std::lock_guard<std::mutex> lock(m_connMutex);
-  if (m_isConnected) {
+  if (IsConnected()) {
+    const std::lock_guard<std::mutex> lock(m_connMutex);
     LOG(LOG_WARN, "Closing Connection");
 
     auto amqpReply = amqp_connection_close(m_conn, AMQP_REPLY_SUCCESS);
@@ -89,7 +92,7 @@ HARE_ERROR_E ConnectionBase::CloseConnection() {
     amqp_destroy_connection(m_conn);
   }
 
-  m_isConnected = false;
+  setConnected(false);
   return retCode;
 }
 
@@ -143,7 +146,7 @@ HARE_ERROR_E ConnectionBase::Connect() {
   }
 
   if (noError(retCode)) {
-    m_isConnected = true;
+    setConnected(true);
   }
 
   return retCode;
@@ -152,10 +155,11 @@ HARE_ERROR_E ConnectionBase::Connect() {
 HARE_ERROR_E ConnectionBase::DeclareExchange(int channel,
                                              const std::string& exchange,
                                              const std::string& type) {
-  const std::lock_guard<std::mutex> lock(m_connMutex);
-  if (false == m_isConnected) {
+  if (false == IsConnected()) {
     return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
   }
+
+  const std::lock_guard<std::mutex> lock(m_connMutex);
   amqp_exchange_declare(m_conn, channel, amqp_cstring_bytes(exchange.c_str()),
                         amqp_cstring_bytes(type.c_str()), 0, 0, 0, 0,
                         amqp_empty_table);  // TODO MORE POWER TO USER
@@ -164,12 +168,12 @@ HARE_ERROR_E ConnectionBase::DeclareExchange(int channel,
 
 HARE_ERROR_E ConnectionBase::OpenChannel(int channel) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  const std::lock_guard<std::mutex> lock(m_connMutex);
 
-  if (false == m_isConnected) {
+  if (false == IsConnected()) {
     return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
   }
 
+  const std::lock_guard<std::mutex> lock(m_connMutex);
   amqp_channel_open(m_conn, channel);
 
   retCode = decodeRpcReply(amqp_get_rpc_reply(m_conn));
@@ -190,7 +194,7 @@ HARE_ERROR_E ConnectionBase::CloseChannel(int channel) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   const std::lock_guard<std::mutex> lock(m_connMutex);
 
-  if (false == m_isConnected) {
+  if (false == IsConnected()) {
     return HARE_ERROR_E::UNABLE_TO_CLOSE_CHANNEL;
   }
 
@@ -201,9 +205,8 @@ HARE_ERROR_E ConnectionBase::CloseChannel(int channel) {
 
 HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
-  const std::lock_guard<std::mutex> lock(m_connMutex);
 
-  if (false == m_isConnected) {
+  if (false == IsConnected()) {
     return HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
   }
 
@@ -218,6 +221,7 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
     message.properties.timestamp = curTimeInMicroSecs;
   }
 
+  const std::lock_guard<std::mutex> lock(m_connMutex);
   auto errorVal = amqp_basic_publish(m_conn, message.channel, message.exchange,
                                      message.routing_value, 0, 0,
                                      &message.properties, message.message);

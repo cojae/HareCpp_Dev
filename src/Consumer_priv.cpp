@@ -39,18 +39,6 @@ void Consumer::setRunning(bool running) {
   m_threadRunning = running;
 }
 
-void Consumer::stopUnboundChannelThread() {
-  if (m_unboundChannelThreadRunning) {
-    LOG(LOG_WARN, "Unbound Channel Thread Stopping");
-    m_unboundChannelThreadRunning = false;
-
-    m_unboundChannelThreadSig->set_value();
-    m_unboundChannelThread.join();
-
-    delete m_unboundChannelThreadSig;
-  }
-}
-
 HARE_ERROR_E Consumer::openChannel(const int channel) {
   auto retCode = m_connection->OpenChannel(channel);
   if (noError(retCode)) {
@@ -102,6 +90,30 @@ HARE_ERROR_E Consumer::consume(const int channel,
   return retCode;
 }
 
+int Consumer::pendingChannelSize() const {
+  const std::lock_guard<std::mutex> lock{m_pendingChannelMutex};
+  return m_pendingChannels.size();
+}
+
+int Consumer::popNextPendingChannel() {
+  const std::lock_guard<std::mutex> lock{m_pendingChannelMutex};
+  int retChannel = m_pendingChannels.front();
+  m_pendingChannels.pop();
+  return retChannel;
+}
+
+void Consumer::pushIntoPendingChannels(const int channel) {
+  const std::lock_guard<std::mutex> lock{m_pendingChannelMutex};
+  m_pendingChannels.push(channel);
+}
+
+void Consumer::emptyPendingChannels() {
+  const std::lock_guard<std::mutex> lock{m_pendingChannelMutex};
+  while (false == m_pendingChannels.empty()) {
+    m_pendingChannels.pop();
+  }
+}
+
 HARE_ERROR_E Consumer::setupAndConsume(int channel) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
   amqp_bytes_t queueName;
@@ -110,17 +122,13 @@ HARE_ERROR_E Consumer::setupAndConsume(int channel) {
   snprintf(log, LOG_MAX_CHAR_SIZE, "Registering channel: %d", channel);
   LOG(LOG_DETAILED, log);
 
-  if (false == m_connection->IsConnected()) {
-    retCode = HARE_ERROR_E::SERVER_CONNECTION_FAILURE;
-  }
-
   if (noError(retCode)) retCode = openChannel(channel);
   if (noError(retCode)) retCode = declareQueue(channel, queueName);
   if (noError(retCode)) retCode = bindQueue(channel, queueName);
   if (noError(retCode)) retCode = consume(channel, queueName);
 
   if (false == noError(retCode)) {
-    m_unboundChannels.push(channel);
+    pushIntoPendingChannels(channel);
   }
 
   return retCode;
@@ -130,10 +138,8 @@ HARE_ERROR_E Consumer::startConsumption() {
   const std::lock_guard<std::mutex> lock(m_consumerMutex);
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
-  // Empty unBoundChannels in case there are some stale ones
-  while (false == m_unboundChannels.empty()) {
-    m_unboundChannels.pop();
-  }
+  // Empty pendingChannels in case there are some stale ones
+  emptyPendingChannels();
 
   // Start up everything
   for (int channel : m_channelHandler.GetChannelList()) {
@@ -143,23 +149,10 @@ HARE_ERROR_E Consumer::startConsumption() {
     }
   }
   // Start up thread to retry all connections that couldn't be established
-  if (m_unboundChannels.size() != 0) {
-    startUnboundChannelThread();
-  } else {
+  if (pendingChannelSize() == 0) {
     LOG(LOG_INFO, "All Consumer Channels successfully created");
   }
   return retCode;
-}
-
-void Consumer::startUnboundChannelThread() {
-  m_unboundChannelThreadSig = new std::promise<void>();
-  m_futureObjUnboundChannel = m_unboundChannelThreadSig->get_future();
-  LOG(LOG_WARN, "Unbound Channel Thread Starting");
-
-  m_unboundChannelThreadRunning = true;
-  m_unboundChannelThread = std::thread(&Consumer::unboundChannelThread, this);
-
-  LOG(LOG_WARN, "Unbound Channel Thread Started");
 }
 
 void Consumer::thread() {
@@ -169,7 +162,15 @@ void Consumer::thread() {
     if (false == m_connection->IsConnected()) {
       retCode = connectAndStartConsumption();
     }
+
     if (noError(retCode)) pullNextMessage();
+
+    // Are there any subscriptions made that aren't connected to?
+    // Pop one at a time so as to not halt up consumption of messages
+    if (pendingChannelSize() != 0) {
+      LOG(LOG_DETAILED, "Attempting to connect to a channel");
+      retCode = setupAndConsume(popNextPendingChannel());
+    }
   }
 }
 
@@ -178,12 +179,6 @@ HARE_ERROR_E Consumer::connectAndStartConsumption() {
   if (noError(retCode)) {
     retCode = startConsumption();
     if (serverFailure(retCode)) {
-      // stop the unbound channel thread that might have started in
-      // startConsumption()
-      if (m_unboundChannelThreadRunning) {
-        stopUnboundChannelThread();
-      }
-
       m_connection->CloseConnection();
     }
   } else {
@@ -235,37 +230,9 @@ void Consumer::pullNextMessage() {
 
   } else if (serverFailure(ret) && IsRunning()) {
     LOG(LOG_FATAL, "Restarting Consumer due to server error");
-    if (m_unboundChannelThreadRunning) {
-      stopUnboundChannelThread();
-    }
-
     m_connection->CloseConnection();
     return;
   }
 }
 
-void Consumer::unboundChannelThread() {
-  while (m_futureObjUnboundChannel.wait_for(std::chrono::milliseconds(200)) ==
-         std::future_status::timeout) {
-    if (false == m_connection->IsConnected()) {
-      continue;
-    }
-    if (m_unboundChannels.size() == 0) {
-      break;
-    }
-    int channel = m_unboundChannels.front();
-    m_unboundChannels.pop();
-
-    LOG(LOG_DETAILED, "Trying a channel");
-    if (false == m_unboundChannelThreadRunning) {
-      break;
-    }
-
-    auto retCode = setupAndConsume(channel);
-    if (serverFailure(retCode)) {
-      return;
-    }
-  }
-  LOG(LOG_INFO, "UnboundChannelThread Finished");
-}
 }  // Namespace HareCpp
