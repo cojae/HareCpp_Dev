@@ -223,7 +223,7 @@ HARE_ERROR_E ConnectionBase::PublishMessage(helper::RawMessage& message) {
 
   const std::lock_guard<std::mutex> lock(m_connMutex);
   auto errorVal = amqp_basic_publish(m_conn, message.channel, message.exchange,
-                                     message.routing_value, 0, 0,
+                                     message.routing_key, 0, 0,
                                      &message.properties, message.message);
 
   if (errorVal < 0) {

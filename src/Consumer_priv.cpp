@@ -210,21 +210,12 @@ void Consumer::pullNextMessage() {
       return;
     }
 
-    auto exchange = std::string(static_cast<char*>(envelope.exchange.bytes),
-                                envelope.exchange.len);
-
-    auto bindingKey =
-        std::string(static_cast<char*>(envelope.routing_key.bytes),
-                    envelope.routing_key.len);
-
-    {
-      char log[LOG_MAX_CHAR_SIZE];
-      snprintf(log, LOG_MAX_CHAR_SIZE, "Received message on %s : %s",
-               exchange.c_str(), bindingKey.c_str());
-      LOG(LOG_DETAILED, log);
-    }
-
-    m_channelHandler.Process(std::make_pair(exchange, bindingKey), newMessage);
+    m_channelHandler.Process(
+        {std::string(static_cast<char*>(envelope.exchange.bytes),
+                     envelope.exchange.len),
+         std::string(static_cast<char*>(envelope.routing_key.bytes),
+                     envelope.routing_key.len)},
+        newMessage);
 
     amqp_destroy_envelope(&envelope);
 

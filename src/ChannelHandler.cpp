@@ -32,21 +32,19 @@ namespace HareCpp {
 ChannelHandler::ChannelHandler()
     : m_nextAvailableChannel(1), m_multiThreaded(false) {}
 
-int ChannelHandler::AddChannelProcessor(
-    const std::pair<std::string, std::string>& bindingPair,
-    TD_Callback& callback) {
+int ChannelHandler::AddChannelProcessor(const HashableBindingPair& bindingPair,
+                                        TD_Callback& callback) {
   auto retCode{-1};
   std::lock_guard<std::mutex> lock(m_handlerMutex);
-  // Check that we don't already have it
 
+  // Check that we don't already have it
   auto it{m_bindingPairLookup.find(bindingPair)};
 
   if (it != m_bindingPairLookup.end()) {
     char log[LOG_MAX_CHAR_SIZE];
-    // TODO sprintf is not safe, please fix all calls
-    snprintf(log, LOG_MAX_CHAR_SIZE,
-             "%s : %s already exists, updating callback",
-             bindingPair.first.c_str(), bindingPair.second.c_str());
+    snprintf(
+        log, LOG_MAX_CHAR_SIZE, "%s : %s already exists, updating callback",
+        bindingPair.m_exchangeName.c_str(), bindingPair.m_routingKey.c_str());
     LOG(LOG_WARN, log);
     // Set new callback
     it->second->m_callback = callback;
@@ -54,7 +52,8 @@ int ChannelHandler::AddChannelProcessor(
   {
     char log[LOG_MAX_CHAR_SIZE];
     snprintf(log, LOG_MAX_CHAR_SIZE, "%s : %s doesn't exist, creating in map",
-             bindingPair.first.c_str(), bindingPair.second.c_str());
+             bindingPair.m_exchangeName.c_str(),
+             bindingPair.m_routingKey.c_str());
     LOG(LOG_DETAILED, log);
 
     /**
@@ -70,7 +69,7 @@ int ChannelHandler::AddChannelProcessor(
 
     m_channelLookup[m_nextAvailableChannel]->m_callback = callback;
     m_channelLookup[m_nextAvailableChannel]->m_bindingPair =
-        std::make_shared<const std::pair<std::string, std::string>>(it->first);
+        std::make_shared<HashableBindingPair>(it->first);
 
     retCode = m_nextAvailableChannel;
     m_nextAvailableChannel++;
@@ -79,7 +78,7 @@ int ChannelHandler::AddChannelProcessor(
 }
 
 int ChannelHandler::RemoveChannelProcessor(
-    const std::pair<std::string, std::string>& bindingPair) {
+    const HashableBindingPair& bindingPair) {
   auto it{m_bindingPairLookup.find(bindingPair)};
   if (it != m_bindingPairLookup.end()) {
     m_channelLookup.erase(*it->second->m_channel);
@@ -95,9 +94,17 @@ void ChannelHandler::SetMultiThreaded(bool multiThread) {
   m_multiThreaded = multiThread;
 }
 
-void ChannelHandler::Process(
-    const std::pair<std::string, std::string>& bindingPair,
-    const Message& message) {
+void ChannelHandler::Process(const HashableBindingPair& bindingPair,
+                             const Message& message) {
+  /* Log receipt of processing */
+  {
+    char log[LOG_MAX_CHAR_SIZE];
+    snprintf(log, LOG_MAX_CHAR_SIZE, "Processing message from %s : %s",
+             bindingPair.m_exchangeName.c_str(),
+             bindingPair.m_routingKey.c_str());
+    LOG(LOG_DETAILED, log);
+  }
+
   std::lock_guard<std::mutex> lock(m_handlerMutex);
   auto it{m_bindingPairLookup.find(bindingPair)};
   if (it == m_bindingPairLookup.end() || it->second == nullptr) {

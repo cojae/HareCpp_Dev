@@ -41,10 +41,8 @@ HARE_ERROR_E Consumer::Subscribe(const std::string& exchange,
   }
 
   if (noError(retCode)) {
-    // TODO Verify that m_channelHandler is doing proper mutex protecting in
-    // these calls
-    auto channel = m_channelHandler.AddChannelProcessor(
-        std::make_pair(exchange, binding_key), f);
+    auto channel =
+        m_channelHandler.AddChannelProcessor({exchange, binding_key}, f);
 
     if (channel == -1) {
       char log[LOG_MAX_CHAR_SIZE];

@@ -194,21 +194,6 @@ class Producer {
         m_curChannelNumber(1){};
 
   /**
-   * Sends a message given the routing key.  This uses the last used exchange as
-   * the exchange for the message to be sent out. The message gets converted
-   * over to HareCpp::helper::RawMessage structure to be put on a queue to be
-   * sent out in the main Producer thread (assuming its been started).
-   *
-   * @param [in] routing_value : the routing key used to distribute out the
-   * message on the last used exchange
-   *
-   * @param [in] message : the HareCpp::Message with the contents to be sent out
-   *
-   * @returns HARE_ERROR_E error code
-   */
-  HARE_ERROR_E Send(const std::string& routing_value, Message& message);
-
-  /**
    * Sends a message given both the exchange and routing key used.  The exchange
    * set by this call will be the default for the next call of the former
    * Send(routing_value,message) declaration.  Though, this may change later.
@@ -218,15 +203,15 @@ class Producer {
    *
    * @param [in] exchange : the rabbitmq exchange the message is sent on
    *
-   * @param [in] routing_value : the routing key used to route the message on
+   * @param [in] routingKey : the routing key used to route the message on
    * the exchange
    *
    * @param [in] message : the HareCpp::Message with the contents to be sent out
    *
    * @returns HARE_ERROR_E error code
    */
-  HARE_ERROR_E Send(const std::string& exchange,
-                    const std::string& routing_value, Message& message);
+  HARE_ERROR_E Send(const std::string& exchange, const std::string& routingKey,
+                    Message& message);
 
   HARE_ERROR_E DeclareExchange(const std::string& exchange,
                                const std::string& type = "direct");

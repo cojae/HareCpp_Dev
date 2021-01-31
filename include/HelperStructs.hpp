@@ -46,7 +46,7 @@ struct queueProperties {
 struct RawMessage {
   amqp_bytes_t exchange;
   int channel;
-  amqp_bytes_t routing_value;
+  amqp_bytes_t routing_key;
   amqp_basic_properties_t properties;
   amqp_bytes_t message;
 };
@@ -61,7 +61,7 @@ struct RawMessage {
  */
 inline void hare_free_message_risky(RawMessage& rawMessage) {
   amqp_bytes_free(rawMessage.message);
-  amqp_bytes_free(rawMessage.routing_value);
+  amqp_bytes_free(rawMessage.routing_key);
   amqp_bytes_free(rawMessage.exchange);
 };
 

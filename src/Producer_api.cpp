@@ -39,8 +39,7 @@ int Producer::QueueSize() const {
 }
 
 HARE_ERROR_E Producer::Send(const std::string& exchange,
-                            const std::string& routing_value,
-                            Message& message) {
+                            const std::string& routingKey, Message& message) {
   auto retCode = HARE_ERROR_E::ALL_GOOD;
 
   if (addExchange(exchange) < 0)
@@ -52,7 +51,7 @@ HARE_ERROR_E Producer::Send(const std::string& exchange,
 
     builtMessage->exchange = hare_cstring_bytes(exchange.c_str());
 
-    builtMessage->routing_value = hare_cstring_bytes(routing_value.c_str());
+    builtMessage->routing_key = hare_cstring_bytes(routingKey.c_str());
 
     builtMessage->properties = *message.AmqpProperties();
 

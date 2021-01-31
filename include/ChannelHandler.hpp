@@ -29,6 +29,7 @@
 #ifndef _CHANNEL_HANDLER_H_
 #define _CHANNEL_HANDLER_H_
 
+#include "HashableBindingPair.hpp"
 #include "HelperStructs.hpp"
 #include "Message.hpp"
 #include "pch.hpp"
@@ -51,7 +52,7 @@ class ChannelHandler {
   // Name to be changed
   struct channelProcessingInfo {
     std::shared_ptr<int> m_channel;
-    std::shared_ptr<const std::pair<std::string, std::string> > m_bindingPair;
+    std::shared_ptr<HashableBindingPair> m_bindingPair;
     TD_Callback m_callback;
 
     amqp_bytes_t m_queueName;
@@ -71,8 +72,8 @@ class ChannelHandler {
    * the bindingPairLookup can have shared structures, so to reduce redundant
    * memory usage.
    */
-  std::map<const std::pair<std::string, std::string>,
-           std::shared_ptr<channelProcessingInfo> >
+  std::unordered_map<HashableBindingPair,
+                     std::shared_ptr<channelProcessingInfo> >
       m_bindingPairLookup;
 
   /**
@@ -84,7 +85,8 @@ class ChannelHandler {
    * This shares the same channelProcessingInfo as m_bindingPairLookup, for easy
    * access/quicker lookup
    */
-  std::map<int, std::shared_ptr<channelProcessingInfo> > m_channelLookup;
+  std::unordered_map<int, std::shared_ptr<channelProcessingInfo> >
+      m_channelLookup;
 
   // Keeps track of channels, starts at 0 and increments with every new addition
   // to the channelHandler
@@ -127,9 +129,8 @@ class ChannelHandler {
    * this message
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
-  int AddChannelProcessor(
-      const std::pair<std::string, std::string>& bindingPair,
-      TD_Callback& callback);
+  int AddChannelProcessor(const HashableBindingPair& bindingPair,
+                          TD_Callback& callback);
 
   /**
    * Removes a channel processing group from the current class instances list
@@ -139,8 +140,7 @@ class ChannelHandler {
    * @param [in] bindingPair : The pair of exchange name and routing key
    * @returns integer value for its success (-1 = fails) TODO use HARE_ERROR_E
    */
-  int RemoveChannelProcessor(
-      const std::pair<std::string, std::string>& bindingPair);
+  int RemoveChannelProcessor(const HashableBindingPair& bindingPair);
 
   /**
    * set the multiThreaded boolean (default true/on)
@@ -162,8 +162,7 @@ class ChannelHandler {
    * where the message came from and what callback we care about
    * @param [in] message: The message to be processed
    */
-  void Process(const std::pair<std::string, std::string>& bindingPair,
-               const Message& message);
+  void Process(const HashableBindingPair& bindingPair, const Message& message);
 
   /**
    * Returns a vector of all channels
@@ -183,7 +182,7 @@ class ChannelHandler {
   std::string GetExchange(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
-      return m_channelLookup[channel]->m_bindingPair->first;
+      return m_channelLookup[channel]->m_bindingPair->m_exchangeName;
     else
       return "";  // Should error TODO
   }
@@ -197,7 +196,7 @@ class ChannelHandler {
   std::string GetBindingKey(int channel) {
     std::lock_guard<std::mutex> lock(m_handlerMutex);
     if (m_channelLookup.count(channel) != 0)
-      return m_channelLookup[channel]->m_bindingPair->second;
+      return m_channelLookup[channel]->m_bindingPair->m_routingKey;
     else
       return "";  // Should error
   }
