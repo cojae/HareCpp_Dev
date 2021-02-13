@@ -38,7 +38,7 @@ namespace HareCpp {
  *  is a little harder to follow :
  * (amqp_bytes_malloc_dup(amqp_cstring_bytes(str)))
  */
-inline amqp_bytes_t hare_cstring_bytes(const char *str) {
+inline __attribute__((always_inline)) amqp_bytes_t hare_cstring_bytes(const char *str) {
   amqp_bytes_t result;
   result.len = strlen(str);
   result.bytes = malloc(result.len + 1);
@@ -48,7 +48,7 @@ inline amqp_bytes_t hare_cstring_bytes(const char *str) {
   return result;
 };
 
-inline amqp_bytes_t hare_void_bytes(const void *data, const int size) {
+inline __attribute__((always_inline)) amqp_bytes_t hare_void_bytes(const void *data, const int size) {
   amqp_bytes_t result;
   result.len = size;
   result.bytes = malloc(size);
@@ -62,7 +62,7 @@ inline amqp_bytes_t hare_void_bytes(const void *data, const int size) {
  * Turns amqp_bytes_t into a string (via static cast and creation of
  * std::string)
  */
-inline std::string hare_bytes_to_string(amqp_bytes_t bytes) {
+inline __attribute__((always_inline)) std::string hare_bytes_to_string(amqp_bytes_t bytes) {
   return std::string(static_cast<char *>(bytes.bytes), bytes.len);
 }
 
@@ -78,7 +78,7 @@ inline std::string hare_bytes_to_string(amqp_bytes_t bytes) {
  * @param [out] clonedProperties :  acting as the full clone of the original
  * properties
  */
-inline void hare_basic_properties_malloc_dup(
+inline __attribute__((always_inline)) void hare_basic_properties_malloc_dup(
     const amqp_basic_properties_t &properties,
     amqp_basic_properties_t &clonedProperties) {
   clonedProperties._flags = properties._flags;
@@ -124,7 +124,7 @@ inline void hare_basic_properties_malloc_dup(
  *
  * NOTE: May be unused, as connectionBase seems to do this fine
  */
-inline const char *amqp_server_exception_string(amqp_rpc_reply_t r) {
+inline __attribute__((always_inline)) const char *amqp_server_exception_string(amqp_rpc_reply_t r) {
   int res;
   static char s[512];
 
@@ -157,7 +157,7 @@ inline const char *amqp_server_exception_string(amqp_rpc_reply_t r) {
 /**
  * General debug function, used for logging out unknown rpc replies
  */
-inline const char *amqp_rpc_reply_string(amqp_rpc_reply_t r) {
+inline __attribute__((always_inline)) const char *amqp_rpc_reply_string(amqp_rpc_reply_t r) {
   switch (r.reply_type) {
     case AMQP_RESPONSE_NORMAL:
       return "normal response";

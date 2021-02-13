@@ -56,20 +56,17 @@ int ChannelHandler::AddChannelProcessor(const HashableBindingPair& bindingPair,
              bindingPair.m_routingKey.c_str());
     LOG(LOG_DETAILED, log);
 
-    /**
-     *  I did this complicated way as a means to make lookups faster
-     *  But this section of code may have broke it  TODO
-     */
     m_channelLookup[m_nextAvailableChannel] =
         std::make_shared<channelProcessingInfo>();
     m_bindingPairLookup.insert(
         std::make_pair(bindingPair, m_channelLookup[m_nextAvailableChannel]));
 
-    it = m_bindingPairLookup.find(bindingPair);
 
     m_channelLookup[m_nextAvailableChannel]->m_callback = callback;
+
+    it = m_bindingPairLookup.find(bindingPair);
     m_channelLookup[m_nextAvailableChannel]->m_bindingPair =
-        std::make_shared<HashableBindingPair>(it->first);
+      std::make_shared<HashableBindingPair>(it->first);
 
     retCode = m_nextAvailableChannel;
     m_nextAvailableChannel++;
